@@ -4,7 +4,9 @@
 - **The job runner against real ECMWF Open Data.** discover → fetch → validate → extract → features → inference → explain → publish runs on real IFS HRES + 50-member ENS `tp` from the ECMWF Open Data mirrors (`ecmwf-opendata`), cropped to the IMD land grid. Real-run history is in `data/ops/ops.db`, jobs 1–3:
   - Job 1 failed at `fetch`: open data has no control member (`cf`) for `tp`. Fix: use the 50 perturbed members, which is also what training used.
   - Job 2 was a retry that resumed at `fetch`. It failed with AWS S3 **503 "Slow Down"** (ECMWF limits connections; the direct portal had also answered 429s).
-  - Job 3 was a retry through the Azure mirror: __JOB3__
+  - Job 3 was a retry through the Azure mirror (`PN_ECMWF_SOURCE=azure`) and **succeeded end to end on real data**: cycle **12 UTC 24 Sep 2026**, fetch 32 min (35.6 MB of cropped fields, 50 members × 10 leads), then validate, extract, features, inference, explain and publish, 360 rows published atomically in `data/nrt/published/2026092412.parquet`.
+  - Sanity check: Day-1 HRES averages 12.8 mm across regions (ensemble mean 13.1, maximum 70.8 mm), spread averages 0.79× normal, and mean P(bust) by lead is 7–10%.
+  - The probabilities come from the **placeholder** model. The ECMWF data is real; the trust estimates are not a skill claim.
 - **The state store, locking, idempotency, resume-on-retry, atomic publish, audit and roles.** These are real code paths, exercised by 16 pytest tests and the Playwright NRT project.
 - **API metrics.** p50, p95 and error rate over the last hour are measured by the request-timing middleware; `/ops/status` takes about 10–30 ms warm (budget 200 ms).
 - **Frontend health.** Each browser posts its build version every 2 min, and the API compares it with its own. With no heartbeat the status reads "Not monitored".
