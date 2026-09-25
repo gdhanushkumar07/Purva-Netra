@@ -27,7 +27,7 @@ The build spec is [IMPLEMENTATION.md](IMPLEMENTATION.md).
 | Thin slice (July 2020) | ✅ extraction → join → labels → B2 → predictions Parquet → API → UI, end to end. **This is plumbing only: it is in-sample and not a skill claim.** It is labelled PLACEHOLDER in the UI. |
 | Full archive 2018–2022 | ⛔ **Not extracted.** It needs a cloud VM (see *Why the full archive is not here yet*). |
 | Model, held-out evaluation, gate §9 | Code complete and tested on synthetic data. **No held-out results exist yet.** `make pipeline` refuses to run on an incomplete archive. |
-| Web-app | ✅ all screens. 31/31 Playwright tests pass, including axe on 13 routes × light/dark. |
+| Web-app | ✅ all screens. 32/32 Playwright tests pass (every route renders, both demo flows, axe on 13 routes × light/dark), and 7/7 Vitest. |
 | Docker | Files written (`purva-netra-api`, `purva-netra-web`). **Not built or tested: Docker is not installed on the development machine.** |
 
 ### Why the full archive is not here yet (T6)
@@ -88,10 +88,10 @@ docker compose up --build   # API :8000, web :5173 — offline (untested here, s
 
 **There are no held-out results yet**, because the 2018–2022 archive is not extracted. Nothing below is a skill claim.
 
-Thin-slice plumbing checks (July 2020, in-sample, 24–62 inits):
+Thin-slice plumbing checks (July 2020, all 62 inits, in-sample):
 
-- Base rate of `bust`: 10.6% overall, 9.1–11.3% by lead (spec expects 8–10%, and the tests require 5–12%).
-- Day-1 HRES vs IMD, land-only subdivision means: r = 0.84, falling to ≈0.60 by Day 10, with MAE rising from 5.3 to 8.1 mm. Units and valid-date alignment are consistent (`docs/sanity_day1.png`).
+- Base rate of `bust`: 11.1% overall, 8.4–12.2% by lead (the spec expects ≈8–10%; the floor and a single month make it noisy; the tests require 5–12%).
+- Day-1 HRES vs IMD, land-only subdivision means: r = 0.81, falling to 0.61 by Day 10, with MAE rising from 5.0 to 7.8 mm. Units and valid-date alignment are consistent (`docs/sanity_day1.png`).
 
 Once the archive exists, `make all` writes `data/processed/eval/results.json`, the Trust Ledger JSON and the replay store, and `notebooks/20_results.ipynb` renders BSS vs B0/B2 with CIs, reliability diagrams, ROC/PR-AUC for bust and hi_bust, pinball losses, ablations and case studies.
 
@@ -110,7 +110,7 @@ Screens: Briefing, Matrix, Map (day scrubber, layer switcher, split map), Region
 
 **Colour validation.** The P(bust) diverging scale is centred on the 10% base rate. Each arm, in light and dark, was run through the dataviz palette validator: monotone lightness, one hue, step gaps ≥ 0.06. The light near-neutral steps sit under the 2:1 ordinal light-end floor by design, as heatmap steps that recede toward the surface; cells carry a hairline border plus text. The categorical proof-chart slots B0/B2/model pass CVD and normal-vision checks in both modes. Light-mode aqua is at 2.74:1, so that chart carries direct labels and a table view.
 
-**§13.12 checklist.** ✅ colour never alone (icons, labels, texture) · ✅ keyboard reachable, visible focus · ✅ table view for every chart and the matrix · ✅ axe: no serious/critical issues on 13 routes × 2 themes · ✅ text contrast ≥ 4.5:1 (axe) · ✅ `prefers-reduced-motion` · ⛔ Hindi reviewed by a native speaker · ✅ Playwright: brief → matrix → region → why → export, and a full replay.
+**§13.12 checklist.** ✅ colour never alone (icons, labels, texture) · ✅ keyboard reachable, visible focus · ✅ table view for every chart and the matrix · ✅ axe: no serious/critical issues on 13 routes × 2 themes · ✅ text contrast ≥ 4.5:1 (axe) · ✅ `prefers-reduced-motion` · ⛔ Hindi reviewed by a native speaker · ✅ Playwright: brief → matrix → region → why → export, and a full replay (Assam and Bihar floods, July 2020).
 
 Screenshots: `docs/screens/` (`make screens`).
 
