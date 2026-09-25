@@ -241,7 +241,12 @@ export function Shell({ children }: { children: ReactNode }) {
   const qs = carry.toString() ? `?${carry}` : "";
   const ThemeIcon = s.theme === "dark" ? Moon : s.theme === "light" ? Sun : Monitor;
   const nextTheme = s.theme === "system" ? "light" : s.theme === "light" ? "dark" : "system";
+  const isLanding = loc.pathname === "/";
   const bare = loc.pathname === "/login";
+
+  if (isLanding) {
+    return <main id="main">{children}</main>;
+  }
 
   return (
     <div className="flex min-h-svh flex-col">

@@ -20,6 +20,7 @@ const Compare = lazy(() => import("@/pages/Compare"));
 const Ledger = lazy(() => import("@/pages/Ledger"));
 const Ops = lazy(() => import("@/pages/Ops"));
 const Login = lazy(() => import("@/pages/Login"));
+const Home = lazy(() => import("@/pages/Home"));
 
 const qc = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
 
@@ -55,7 +56,7 @@ export default function App() {
           <Shell>
             <Screens><Suspense fallback={<Loading />}>
               <Routes>
-                <Route path="/" element={<Landing />} />
+                <Route path="/" element={<Home />} />
                 <Route path="/brief" element={<Brief />} />
                 <Route path="/matrix" element={<Matrix />} />
                 <Route path="/map" element={<MapPage />} />
