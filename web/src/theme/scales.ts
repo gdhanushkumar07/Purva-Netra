@@ -8,7 +8,7 @@ export const PBUST_EDGES = [0.03, 0.06, 0.09, 0.12, 0.18, 0.25, 0.35, 1.0001];
 export const PBUST_LABELS = ["< 3%", "3–6%", "6–9%", "9–12%", "12–18%", "18–25%", "25–35%", "> 35%"];
 const DIV: Record<Theme, string[]> = {
   //       blue arm (more trustworthy) ← neutral →  red arm (less trustworthy)
-  light: ["#2a78d6", "#6da7ec", "#b7d3f6", "#f0efec", "#f5c0b3", "#eb8a75", "#d4493d", "#9c2723"],
+  light: ["#256abf", "#6da7ec", "#b7d3f6", "#f0efec", "#f5c0b3", "#eb8a75", "#d4493d", "#9c2723"],
   dark: ["#5b97e3", "#2f6fc0", "#1f4f8f", "#383835", "#94342c", "#b8433a", "#dc5f51", "#f29a8a"],
 };
 // Ink that stays legible on each bin (for numbers inside cells)
@@ -27,7 +27,7 @@ export const pbustPalette = (t: Theme) => DIV[t];
 export const DIFF_EDGES = [-0.1, -0.05, -0.02, 0.02, 0.05, 0.1, 9];
 export const DIFF_LABELS = ["≤ −10 pts", "−10…−5", "−5…−2", "±2", "+2…+5", "+5…+10", "≥ +10 pts"];
 const DIFF: Record<Theme, string[]> = {
-  light: ["#2a78d6", "#6da7ec", "#b7d3f6", "#f0efec", "#f5c0b3", "#eb8a75", "#d4493d"],
+  light: ["#256abf", "#6da7ec", "#b7d3f6", "#f0efec", "#f5c0b3", "#eb8a75", "#d4493d"],
   dark: ["#5b97e3", "#2f6fc0", "#1f4f8f", "#383835", "#94342c", "#b8433a", "#dc5f51"],
 };
 export const diffColor = (d: number | null | undefined, t: Theme) =>

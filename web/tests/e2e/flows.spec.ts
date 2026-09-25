@@ -5,11 +5,23 @@ const ROUTES = ["/brief", "/matrix", "/map", "/region/8?day=5&tab=overview", "/r
   "/region/8?day=5&tab=evolution", "/region/8?day=5&tab=verify", "/replay", "/compare", "/ledger", "/watchlist",
   "/method", "/settings"];
 
-test("mode badge is visible on every screen and says REPLAY", async ({ page }) => {
+test("every screen renders content without errors, with the REPLAY badge", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
   for (const r of ROUTES) {
     await page.goto(r);
     await expect(page.getByTestId("mode-badge")).toHaveText("REPLAY");
+    await expect(page.locator("main h1").first()).toBeVisible();
+    await expect(page.getByTestId("screen-error")).toHaveCount(0);
+    await expect(page.getByRole("alert").filter({ hasText: /could not/i })).toHaveCount(0);
   }
+  expect(errors).toEqual([]);
+});
+
+test("verify tab shows truth and nwpeval contingency scores", async ({ page }) => {
+  await page.goto("/region/8?day=5&tab=verify");
+  await expect(page.getByText(/Heavy-rain contingency scores/)).toBeVisible();
+  await expect(page.getByText("IMD observed")).toBeVisible();
 });
 
 test("briefing → matrix → region → why → export", async ({ page }) => {
@@ -60,6 +72,7 @@ for (const r of ROUTES) {
     test(`axe: no serious/critical issues on ${r} (${scheme})`, async ({ page }) => {
       await page.emulateMedia({ colorScheme: scheme });
       await page.goto(r);
+      await expect(page.locator("main h1").first()).toBeVisible();   // never audit a blank page
       await page.waitForTimeout(800);
       const res = await new AxeBuilder({ page }).exclude(".maplibregl-canvas").analyze();
       const bad = res.violations.filter((v) => v.impact === "serious" || v.impact === "critical");

@@ -17,6 +17,10 @@ def add_ensemble_features(df, clim):
     df = df.drop(columns=["spread_clim", "f_rain_clim"], errors="ignore")
     df = df.merge(clim["spread"], on=["rid", "lead", "month"], how="left")
     df = df.merge(clim["f_rain"], on=["rid", "lead", "month"], how="left")
+    # month absent from the training rows (e.g. a one-month slice): fall back to the train (rid, lead) mean
+    for c, t in (("spread_clim", clim["spread"]), ("f_rain_clim", clim["f_rain"])):
+        fb = t.groupby(["rid", "lead"])[c].mean()
+        df[c] = df[c].fillna(pd.Series(list(zip(df.rid, df.lead))).map(fb).set_axis(df.index))
     df["spread_anom"] = df.ens_spread / (df.spread_clim + 0.1)
     df["hres_minus_em"] = np.abs(df.f_rain - df.ens_mean)
     df["ens_iqr_rel"] = (df.ens_q90 - df.ens_q10) / (df.ens_mean + 1)

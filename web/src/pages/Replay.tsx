@@ -59,7 +59,11 @@ export default function Replay() {
             REPLAY · {t("replay.banner", { init: fmtInit(r.data.init) })} · {r.data.event.name}
           </div>
           <div className="no-print flex flex-wrap items-center gap-2">
-            <Button size="sm" onClick={() => v.set({ reveal: Math.min(10, reveal + 1) })} disabled={reveal >= 10} data-testid="advance">
+            <Button size="sm" onClick={() => {
+              // read the live URL, not the last render: rapid clicks must each advance one day
+              const cur = Number(new URLSearchParams(window.location.search).get("reveal") ?? 0);
+              v.set({ reveal: Math.min(10, cur + 1) });
+            }} disabled={reveal >= 10} data-testid="advance">
               <Play className="size-4" aria-hidden />{t("replay.play")}
             </Button>
             <Button size="sm" variant="outline" onClick={() => setAuto(!auto)} aria-pressed={auto}>{auto ? "⏸" : "▶▶"} auto</Button>
@@ -77,7 +81,7 @@ export default function Replay() {
             </div>
           </div>
           <PbustLegend compact />
-          <section className="sticky bottom-0 rounded-lg border bg-card p-3" aria-label={t("replay.ticker")} data-testid="ticker">
+          <section className="sticky bottom-0 z-20 rounded-lg border bg-card p-3 shadow-sm" aria-label={t("replay.ticker")} data-testid="ticker">
             {(() => {
               const tk = r.data.ticker.find((x) => x.day === reveal);
               if (!tk) return <p className="text-sm text-muted-foreground">{t("replay.ticker")}: advance a day to start scoring.</p>;

@@ -6,7 +6,7 @@ const routes = [
   ["brief", "/brief"], ["matrix", "/matrix"], ["map", "/map?day=5"], ["map-split", "/map?day=5&split=1"],
   ["region-overview", "/region/8?day=5&tab=overview"], ["region-why", "/region/8?day=5&tab=why"],
   ["region-evolution", "/region/8?day=5&tab=evolution"], ["region-verify", "/region/8?day=5&tab=verify"],
-  ["replay", "/replay?reveal=4"], ["compare", "/compare"], ["ledger", "/ledger"], ["method", "/method"], ["settings", "/settings"],
+  ["replay", "/replay?event=assam-2020-07&reveal=6"], ["compare", "/compare"], ["ledger", "/ledger"], ["method", "/method"], ["settings", "/settings"],
 ];
 const b = await chromium.launch({ channel: process.env.PW_CHANNEL ?? "chrome" });
 for (const theme of ["light", "dark"]) {

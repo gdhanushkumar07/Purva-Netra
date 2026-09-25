@@ -1,9 +1,10 @@
 import { lazy, Suspense, useEffect } from "react";
-import { BrowserRouter, Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Shell } from "@/components/shell/Shell";
 import { Loading } from "@/components/common";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useResolvedTheme } from "@/lib/hooks";
 import { useSettings } from "@/store";
 import { registerNavigate } from "@/tour/demoTour";
@@ -32,6 +33,10 @@ function NavBridge() {
   useEffect(() => registerNavigate(nav), [nav]);
   return null;
 }
+function Screens({ children }: { children: React.ReactNode }) {
+  const loc = useLocation();
+  return <ErrorBoundary resetKey={loc.pathname + loc.search}>{children}</ErrorBoundary>;
+}
 function Landing() {
   const landing = useSettings((s) => s.landing);
   return <Navigate to={landing + window.location.search} replace />;
@@ -45,7 +50,7 @@ export default function App() {
           <ThemeSync />
           <NavBridge />
           <Shell>
-            <Suspense fallback={<Loading />}>
+            <Screens><Suspense fallback={<Loading />}>
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/brief" element={<Brief />} />
@@ -60,7 +65,7 @@ export default function App() {
                 <Route path="/settings" element={<Settings />} />
                 <Route path="*" element={<Navigate to="/brief" replace />} />
               </Routes>
-            </Suspense>
+            </Suspense></Screens>
           </Shell>
         </BrowserRouter>
       </TooltipProvider>
