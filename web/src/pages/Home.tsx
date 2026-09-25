@@ -1,33 +1,35 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import { 
-  ArrowRight, ShieldCheck, Cpu, Database, MapPin, Activity, 
-  Layers, BarChart2, CheckCircle2, ChevronRight, Terminal, 
-  ExternalLink, Sparkles, AlertCircle, Compass, Radio, FileText
+  ArrowRight, ShieldCheck, Cpu, Database, Activity, 
+  Layers, CheckCircle2, ExternalLink, MapPin, 
+  Calendar, Info, RefreshCw, BarChart3, AlertTriangle
 } from "lucide-react";
 import { useHealth, useMatrix } from "@/api/client";
-import { useInit, useResolvedTheme, pct, prettyName, fmtInit } from "@/lib/hooks";
-import { PBUST_LABELS, pbustPalette, type Theme } from "@/theme/scales";
+import { useInit, useResolvedTheme, pct, prettyName } from "@/lib/hooks";
+import { pbustPalette, type Theme } from "@/theme/scales";
 import { Button } from "@/components/ui/button";
 
 export default function Home() {
-  const { t } = useTranslation();
   const theme = useResolvedTheme();
-  const nav = useNavigate();
   const { init } = useInit();
   const h = useHealth();
   const m = useMatrix(init);
 
   const [activeSection, setActiveSection] = useState("hero");
   const [selectedDay, setSelectedDay] = useState(5);
-  const [hoveredRegion, setHoveredRegion] = useState<string | null>(null);
+  const [hoveredRegion, setHoveredRegion] = useState<{ name: string; p: number; conf: string; lead: number } | null>({
+    name: "Vidarbha",
+    p: 0.28,
+    conf: "Low",
+    lead: 5
+  });
 
-  // Scroll spy for sticky navigation active pill
+  // Dedicated section tracker for clean active pill
   useEffect(() => {
     const handleScroll = () => {
-      const sections = ["hero", "problem", "how-it-works", "why", "workflow", "tech", "demo"];
-      const scrollPos = window.scrollY + 180;
+      const sections = ["hero", "problem", "how-it-works", "why", "workflow", "map-preview", "tech", "demo"];
+      const scrollPos = window.scrollY + 200;
       for (const s of sections) {
         const el = document.getElementById(s);
         if (el) {
@@ -46,37 +48,39 @@ export default function Home() {
 
   const pal = pbustPalette(theme);
 
-  // Sample genuine region subset from real matrix or fallback
+  // Concrete sample regions from actual July 2020 thin-slice
   const sampleRegions = [
-    { rid: 8, name: "Vidarbha", p: 0.28, conf: "Low", dRain: "42 mm", reason: "Members disagree 4.1x normal spread" },
-    { rid: 7, name: "Saurashtra & Kutch", p: 0.32, conf: "Low", dRain: "56 mm", reason: "Forecast changed notably vs previous cycle" },
-    { rid: 2, name: "Gujarat Region", p: 0.22, conf: "Reduced", dRain: "35 mm", reason: "Elevated spread in coastal convection" },
-    { rid: 33, name: "Kerala", p: 0.04, conf: "High", dRain: "88 mm", reason: "High ensemble convergence & regime alignment" },
-    { rid: 14, name: "Jharkhand", p: 0.19, conf: "Reduced", dRain: "24 mm", reason: "Moderate spread anomaly across leads" },
-    { rid: 18, name: "Assam & Meghalaya", p: 0.08, conf: "Normal", dRain: "65 mm", reason: "Stable orographic monsoon flow" },
+    { rid: 8, name: "Vidarbha", p: 0.28, conf: "Low", dRain: "42 mm", reason: "Members disagree 4.1× normal spread", dInit: "12 UTC" },
+    { rid: 7, name: "Saurashtra & Kutch", p: 0.30, conf: "Low", dRain: "56 mm", reason: "Forecast changed notably vs previous cycle", dInit: "12 UTC" },
+    { rid: 2, name: "Gujarat Region", p: 0.22, conf: "Reduced", dRain: "35 mm", reason: "Elevated spread in coastal convection", dInit: "12 UTC" },
+    { rid: 33, name: "Kerala", p: 0.04, conf: "High", dRain: "88 mm", reason: "High ensemble convergence & regime alignment", dInit: "12 UTC" },
   ];
 
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-primary/20 selection:text-primary font-sans">
-      {/* 1. STICKY TOP NAVIGATION */}
-      <header className="sticky top-0 z-50 w-full border-b border-border/80 bg-background/90 backdrop-blur-md transition-all">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          {/* Brand */}
-          <Link to="/" className="flex items-center gap-2 group">
-            <span className="font-extrabold tracking-tight text-base sm:text-lg">PURVA NETRA</span>
-            <span className="hidden sm:inline-block h-3.5 w-px bg-border mx-1" />
-            <span className="hidden sm:inline-block text-[11px] font-medium uppercase tracking-wider text-muted-foreground group-hover:text-foreground transition-colors">
-              Forecast Trust Intelligence
+    <div className="min-h-screen bg-[#fcfcfb] dark:bg-[#121211] text-foreground font-sans antialiased selection:bg-primary/20 selection:text-primary">
+      
+      {/* 1. REFINED EDITORIAL STICKY NAVBAR */}
+      <header className="sticky top-0 z-50 w-full border-b border-border/70 bg-[#fcfcfb]/90 dark:bg-[#121211]/90 backdrop-blur-md">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          {/* Logo & Sub-tag */}
+          <Link to="/" className="flex flex-col text-left group">
+            <span className="font-black tracking-tight text-lg leading-none text-foreground">
+              PURVA NETRA
+            </span>
+            <span className="text-[10px] font-mono tracking-widest text-muted-foreground uppercase mt-1">
+              FORECAST TRUST INTELLIGENCE
             </span>
           </Link>
 
-          {/* Navigation Anchors */}
-          <nav className="hidden md:flex items-center gap-1 rounded-full border border-border/60 bg-muted/40 p-1 text-xs font-medium text-muted-foreground shadow-xs">
+          {/* Section Pill Links */}
+          <nav className="hidden lg:flex items-center gap-1 rounded-full border border-border/70 bg-secondary/60 p-1 text-xs font-semibold text-muted-foreground">
             {[
               { id: "hero", label: "HOME" },
               { id: "problem", label: "PROBLEM" },
               { id: "how-it-works", label: "HOW IT WORKS" },
               { id: "why", label: "WHY PURVA NETRA" },
+              { id: "workflow", label: "WORKFLOW" },
+              { id: "map-preview", label: "MAP" },
               { id: "tech", label: "TECHNOLOGY" },
               { id: "demo", label: "LIVE DEMO" },
             ].map((item) => (
@@ -84,9 +88,9 @@ export default function Home() {
                 key={item.id}
                 href={`#${item.id}`}
                 className={`rounded-full px-3 py-1 transition-all ${
-                  activeSection === item.id 
-                    ? "bg-background text-foreground font-semibold shadow-xs border border-border/40" 
-                    : "hover:text-foreground hover:bg-background/40"
+                  activeSection === item.id
+                    ? "bg-card text-foreground font-bold shadow-xs border border-border/80"
+                    : "hover:text-foreground hover:bg-card/40"
                 }`}
               >
                 {item.label}
@@ -95,11 +99,11 @@ export default function Home() {
           </nav>
 
           {/* Right Action */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Button
               asChild
               size="sm"
-              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm text-xs px-3.5 h-8 rounded-md"
+              className="bg-primary hover:bg-primary/95 text-primary-foreground font-bold tracking-tight text-xs px-4 h-9 rounded-md shadow-xs"
             >
               <Link to="/brief" data-testid="landing-launch-btn">
                 LAUNCH CONSOLE
@@ -110,46 +114,48 @@ export default function Home() {
         </div>
       </header>
 
-      {/* 2. HERO SECTION */}
-      <section id="hero" className="relative overflow-hidden pt-12 pb-20 md:pt-20 md:pb-28 border-b border-border/60">
-        {/* Subtle grid pattern background */}
+      {/* 2. HERO — EDITORIAL COMPOSITION */}
+      <section id="hero" className="relative pt-16 pb-24 md:pt-24 md:pb-32 overflow-hidden border-b border-border/70">
+        {/* Subtle grid texture */}
         <div 
-          className="absolute inset-0 pointer-events-none opacity-40 [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_80%)]" 
+          className="absolute inset-0 pointer-events-none opacity-30 [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_80%)]" 
           style={{
             backgroundImage: "linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)",
-            backgroundSize: "40px 40px",
-            color: theme === "dark" ? "#ffffff08" : "#00000008"
+            backgroundSize: "48px 48px",
+            color: theme === "dark" ? "#ffffff0f" : "#0000000a"
           }}
         />
 
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-10 items-center">
             
-            {/* Left Column: Editorial Headline & Actions */}
-            <div className="lg:col-span-6 space-y-6 text-left">
-              <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-muted/50 px-3 py-1 text-xs font-mono text-muted-foreground">
-                <span className="size-1.5 rounded-full bg-primary animate-pulse" />
-                <span>SIH 2026 · PS 26079 · MEDIUM-RANGE RISK INTELLIGENCE</span>
+            {/* Left Side: Editorial Typography Hierarchy */}
+            <div className="lg:col-span-6 space-y-8 text-left">
+              {/* Eyebrow */}
+              <div className="inline-flex items-center gap-2 rounded-md border border-border bg-secondary/80 px-3 py-1 text-xs font-mono font-medium text-foreground tracking-tight">
+                <span className="size-2 rounded-full bg-primary" />
+                <span>MEDIUM-RANGE WEATHER RISK INTELLIGENCE · PS 26079</span>
               </div>
 
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.08] text-foreground uppercase">
-                Know When to Trust <br />
-                <span className="text-primary underline decoration-border decoration-wavy decoration-1 underline-offset-8">
-                  The Forecast.
-                </span>
+              {/* Large Editorial Headline */}
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.04] text-foreground uppercase">
+                KNOW WHEN TO <br />
+                <span className="text-foreground">TRUST</span> <br />
+                <span className="text-primary tracking-normal">THE FORECAST.</span>
               </h1>
 
-              <p className="text-base sm:text-lg text-muted-foreground max-w-xl leading-relaxed font-normal">
+              {/* Concise Supporting Copy */}
+              <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-xl font-normal">
                 Purva Netra is a forecast-trust intelligence layer for medium-range weather prediction — 
                 revealing when a forecast may fail, why confidence changes, and how it performs against observed rainfall.
               </p>
 
-              {/* CTAs */}
-              <div className="flex flex-wrap items-center gap-3 pt-2">
+              {/* Primary & Secondary Action */}
+              <div className="flex flex-wrap items-center gap-4 pt-2">
                 <Button 
                   asChild 
                   size="lg" 
-                  className="bg-primary hover:bg-primary/95 text-primary-foreground font-semibold px-6 shadow-md hover:shadow-lg transition-all"
+                  className="bg-primary hover:bg-primary/95 text-primary-foreground font-bold tracking-tight px-7 h-12 shadow-sm text-sm"
                 >
                   <Link to="/brief">
                     LAUNCH PURVA NETRA
@@ -161,158 +167,151 @@ export default function Home() {
                   asChild 
                   variant="outline" 
                   size="lg"
-                  className="border-border hover:bg-accent text-foreground font-medium px-5"
+                  className="border-border hover:bg-accent text-foreground font-semibold px-6 h-12 text-sm"
                 >
                   <a href="#how-it-works">SEE HOW IT WORKS</a>
                 </Button>
               </div>
 
-              {/* Factual live indicators */}
-              <div className="pt-3 flex flex-wrap items-center gap-4 text-xs font-mono text-muted-foreground border-t border-border/50">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-foreground">ECMWF IFS:</span>
-                  <span>0.4° HRES + 1.5° ENS</span>
+              {/* Scientific Metadata Strip */}
+              <div className="pt-6 border-t border-border/80 grid grid-cols-3 gap-4 text-left">
+                <div>
+                  <div className="text-[10px] font-mono font-bold tracking-widest text-muted-foreground uppercase">ECMWF IFS</div>
+                  <div className="text-xs font-semibold text-foreground mt-0.5">HRES + 50-MBR ENS</div>
                 </div>
-                <div className="h-3 w-px bg-border" />
-                <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-foreground">TRUTH:</span>
-                  <span>IMD 0.25° Gridded Rain</span>
+                <div>
+                  <div className="text-[10px] font-mono font-bold tracking-widest text-muted-foreground uppercase">TRUTH</div>
+                  <div className="text-xs font-semibold text-foreground mt-0.5">IMD 0.25° GRIDDED RAIN</div>
                 </div>
-                <div className="h-3 w-px bg-border" />
-                <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-foreground">COVERAGE:</span>
-                  <span>36 Subdivisions × D1–10</span>
+                <div>
+                  <div className="text-[10px] font-mono font-bold tracking-widest text-muted-foreground uppercase">COVERAGE</div>
+                  <div className="text-xs font-semibold text-foreground mt-0.5">36 SUBDIVISIONS × D1–10</div>
                 </div>
               </div>
             </div>
 
-            {/* Right Column: Hero Visual Product Preview (India Map + Timeline + P(Bust)) */}
+            {/* Right Side: Product Visual Panel — "Live Scientific Instrument" */}
             <div className="lg:col-span-6">
-              <div className="relative rounded-xl border border-border bg-card p-4 shadow-xl overflow-hidden transition-all duration-300 hover:border-primary/40">
-                {/* Console Window Header */}
-                <div className="flex items-center justify-between border-b border-border/70 pb-3 mb-3 text-xs">
+              <div className="relative rounded-xl border border-border bg-card shadow-2xl p-5 overflow-hidden transition-all duration-300">
+                {/* Visual relationship indicator badge */}
+                <div className="flex items-center justify-between border-b border-border/80 pb-3 mb-4">
                   <div className="flex items-center gap-2">
-                    <span className="size-2.5 rounded-full bg-red-500/80 inline-block" />
-                    <span className="size-2.5 rounded-full bg-amber-500/80 inline-block" />
-                    <span className="size-2.5 rounded-full bg-green-500/80 inline-block" />
-                    <span className="font-mono font-semibold ml-2 text-foreground tracking-wide">
-                      PURVA-NETRA / FORECAST TRUST CONSOLE
+                    <span className="size-2.5 rounded-full bg-border" />
+                    <span className="font-mono text-xs font-bold tracking-wider text-foreground">
+                      PURVA NETRA / FORECAST TRUST CONSOLE
                     </span>
                   </div>
-                  <span className="font-mono text-[11px] rounded bg-muted px-2 py-0.5 text-muted-foreground font-medium">
-                    CYCLE: 12 UTC
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-border bg-muted/60 text-muted-foreground font-semibold">
+                    PREVIEW · JULY 2020 THIN SLICE
                   </span>
                 </div>
 
-                {/* Main Product Preview Frame */}
+                {/* Instrument Layout */}
                 <div className="space-y-4">
-                  {/* Top Trust KPI Ribbon */}
-                  <div className="grid grid-cols-3 gap-2 text-left">
-                    <div className="rounded-lg border border-border/60 bg-muted/30 p-2.5">
-                      <div className="text-[11px] text-muted-foreground uppercase font-mono">RISK LEVEL</div>
-                      <div className="text-xl font-bold font-mono text-destructive">2 LOW CONF</div>
-                    </div>
-                    <div className="rounded-lg border border-border/60 bg-muted/30 p-2.5">
-                      <div className="text-[11px] text-muted-foreground uppercase font-mono">HEAVY RAIN</div>
-                      <div className="text-xl font-bold font-mono text-foreground">6 REGIONS ▲</div>
-                    </div>
-                    <div className="rounded-lg border border-border/60 bg-muted/30 p-2.5">
-                      <div className="text-[11px] text-muted-foreground uppercase font-mono">HIGHEST UNCERTAINTY</div>
-                      <div className="text-xl font-bold font-mono text-primary">DAY {selectedDay}</div>
-                    </div>
-                  </div>
-
-                  {/* Interactive Map & Matrix Preview Representation */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-center">
-                    {/* Simplified Stylized India Subdivision Schematic */}
-                    <div className="relative rounded-lg border border-border/60 bg-background/50 p-3 h-52 flex flex-col justify-between overflow-hidden">
-                      <div className="flex justify-between items-center text-[11px] font-mono text-muted-foreground border-b border-border/40 pb-1">
-                        <span>P(BUST) REGION MAPPING</span>
-                        <span className="text-primary font-semibold">DAY {selectedDay}</span>
-                      </div>
-
-                      {/* Stylized Geo Hex/Polygon Map of Indian Subdivisions */}
-                      <div className="relative h-36 flex items-center justify-center">
-                        <svg viewBox="0 0 240 240" className="w-full h-full max-h-36 drop-shadow-xs" aria-label="India meteorological subdivisions forecast trust map">
-                          {/* Northern Jammu & Kashmir */}
-                          <path d="M 95 25 L 120 20 L 140 38 L 120 55 L 95 45 Z" fill={pal[1]} stroke="currentColor" strokeWidth="0.8" className="text-border hover:opacity-80 transition-opacity cursor-pointer" onMouseEnter={() => setHoveredRegion("J & K (High Trust)")} />
-                          {/* Western Rajasthan */}
-                          <path d="M 60 70 L 95 65 L 105 105 L 55 110 Z" fill={pal[6]} stroke="currentColor" strokeWidth="0.8" className="text-border hover:opacity-80 transition-opacity cursor-pointer" onMouseEnter={() => setHoveredRegion("West Rajasthan · P(Bust) 34% (Low)")} />
-                          {/* Gujarat & Saurashtra */}
-                          <path d="M 45 115 L 75 112 L 80 145 L 40 140 Z" fill={pal[5]} stroke="currentColor" strokeWidth="0.8" className="text-border hover:opacity-80 transition-opacity cursor-pointer" onMouseEnter={() => setHoveredRegion("Saurashtra & Kutch · P(Bust) 30% (Low)")} />
-                          {/* Central MP */}
-                          <path d="M 98 75 L 145 78 L 140 120 L 90 115 Z" fill={pal[3]} stroke="currentColor" strokeWidth="0.8" className="text-border hover:opacity-80 transition-opacity cursor-pointer" onMouseEnter={() => setHoveredRegion("Madhya Pradesh · P(Bust) 11% (Normal)")} />
-                          {/* Vidarbha & Maharashtra */}
-                          <path d="M 85 130 L 135 125 L 130 160 L 75 155 Z" fill={pal[6]} stroke="currentColor" strokeWidth="0.8" className="text-border hover:opacity-80 transition-opacity cursor-pointer" onMouseEnter={() => setHoveredRegion("Vidarbha · P(Bust) 28% (Low)")} />
-                          {/* East & Odisha */}
-                          <path d="M 142 95 L 180 100 L 175 140 L 138 135 Z" fill={pal[4]} stroke="currentColor" strokeWidth="0.8" className="text-border hover:opacity-80 transition-opacity cursor-pointer" onMouseEnter={() => setHoveredRegion("Odisha · P(Bust) 18% (Reduced)")} />
-                          {/* North East Assam */}
-                          <path d="M 185 65 L 225 60 L 220 90 L 180 92 Z" fill={pal[2]} stroke="currentColor" strokeWidth="0.8" className="text-border hover:opacity-80 transition-opacity cursor-pointer" onMouseEnter={() => setHoveredRegion("Assam & Meghalaya · P(Bust) 8% (Normal)")} />
-                          {/* Southern Peninsula */}
-                          <path d="M 88 165 L 125 162 L 115 210 L 80 185 Z" fill={pal[0]} stroke="currentColor" strokeWidth="0.8" className="text-border hover:opacity-80 transition-opacity cursor-pointer" onMouseEnter={() => setHoveredRegion("Kerala · P(Bust) 4% (High Trust)")} />
-                          {/* Tamil Nadu */}
-                          <path d="M 115 170 L 140 172 L 125 215 L 110 212 Z" fill={pal[1]} stroke="currentColor" strokeWidth="0.8" className="text-border hover:opacity-80 transition-opacity cursor-pointer" onMouseEnter={() => setHoveredRegion("Tamil Nadu · P(Bust) 5% (High Trust)")} />
-                        </svg>
-                      </div>
-
-                      <div className="text-[11px] font-mono text-muted-foreground flex items-center justify-between pt-1 border-t border-border/30">
-                        <span>{hoveredRegion ?? "Hover subdivision"}</span>
-                        <span className="text-[10px] text-primary">Interactive</span>
-                      </div>
+                  {/* Top Key Signals Strip */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="rounded-lg border border-border bg-muted/30 p-3 text-left">
+                      <span className="text-[10px] font-mono font-bold text-muted-foreground uppercase block">
+                        CALIBRATED TRUST
+                      </span>
+                      <span className="text-lg font-mono font-black text-destructive">
+                        P(BUST) 28%
+                      </span>
+                      <span className="text-[10px] text-muted-foreground block mt-0.5 font-medium">
+                        Low Confidence
+                      </span>
                     </div>
 
-                    {/* Subdivision Live Risk Feed */}
-                    <div className="rounded-lg border border-border/60 bg-background/50 p-2.5 h-52 flex flex-col justify-between overflow-hidden">
-                      <div className="flex justify-between items-center text-[11px] font-mono text-muted-foreground border-b border-border/40 pb-1">
-                        <span>SUBDIVISION TRUST MATRIX</span>
-                        <span>TOP RISKS</span>
-                      </div>
+                    <div className="rounded-lg border border-border bg-muted/30 p-3 text-left">
+                      <span className="text-[10px] font-mono font-bold text-muted-foreground uppercase block">
+                        HEAVY RAIN RISK
+                      </span>
+                      <span className="text-lg font-mono font-black text-foreground">
+                        6 REGIONS ▲
+                      </span>
+                      <span className="text-[10px] text-muted-foreground block mt-0.5 font-medium">
+                        ≥ 64.5 mm / 24h
+                      </span>
+                    </div>
 
-                      <div className="space-y-1.5 overflow-hidden">
-                        {sampleRegions.slice(0, 4).map((item) => (
-                          <div 
-                            key={item.rid} 
-                            className="flex items-center justify-between text-xs p-1.5 rounded border border-border/40 bg-card hover:bg-accent/60 transition-colors"
-                          >
-                            <div className="min-w-0 flex-1 pr-2">
-                              <div className="font-semibold truncate">{item.name}</div>
-                              <div className="text-[10px] text-muted-foreground truncate">{item.reason}</div>
-                            </div>
-                            <div className="text-right shrink-0">
-                              <span 
-                                className="inline-block px-1.5 py-0.5 rounded text-[11px] font-mono font-bold"
-                                style={{
-                                  backgroundColor: item.p > 0.25 ? "#9c272325" : item.p > 0.15 ? "#eb8a7525" : "#256abf25",
-                                  color: item.p > 0.25 ? "#b8322f" : item.p > 0.15 ? "#eb6834" : "#1c5cab"
-                                }}
-                              >
-                                {pct(item.p)}
-                              </span>
-                              <div className="text-[9px] text-muted-foreground">{item.conf}</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                    <div className="rounded-lg border border-border bg-muted/30 p-3 text-left">
+                      <span className="text-[10px] font-mono font-bold text-muted-foreground uppercase block">
+                        SPREAD ANOMALY
+                      </span>
+                      <span className="text-lg font-mono font-black text-primary">
+                        4.1× NORMAL
+                      </span>
+                      <span className="text-[10px] text-muted-foreground block mt-0.5 font-medium">
+                        High Disagreement
+                      </span>
                     </div>
                   </div>
 
-                  {/* Day 1 - 10 Timeline Scrubber */}
-                  <div className="pt-2 border-t border-border/70 space-y-1.5">
-                    <div className="flex justify-between text-[11px] font-mono text-muted-foreground">
-                      <span>LEAD TIMELINE (DAYS 1–10)</span>
-                      <span>SELECTED: <strong className="text-foreground">DAY {selectedDay}</strong></span>
+                  {/* Main Subdivision Schematic View */}
+                  <div className="rounded-lg border border-border/80 bg-background/50 p-4">
+                    <div className="flex items-center justify-between text-xs font-mono border-b border-border/60 pb-2 mb-3">
+                      <span className="font-semibold text-muted-foreground">
+                        SUBDIVISION CHOROPLETH · DAY {selectedDay}
+                      </span>
+                      <span className="text-primary font-bold">
+                        {hoveredRegion ? `${hoveredRegion.name} (${pct(hoveredRegion.p)} ${hoveredRegion.conf})` : "Hover Region"}
+                      </span>
                     </div>
 
+                    {/* Clean Scaled SVG India Map Schematic */}
+                    <div className="h-48 flex items-center justify-center relative">
+                      <svg viewBox="0 0 240 240" className="w-full h-full max-h-48 drop-shadow-xs" aria-label="India meteorological subdivisions forecast trust map">
+                        {/* Northern Jammu & Kashmir */}
+                        <path d="M 95 25 L 120 20 L 140 38 L 120 55 L 95 45 Z" fill={pal[1]} stroke="currentColor" strokeWidth="0.8" className="text-border hover:opacity-80 transition-opacity cursor-pointer" onMouseEnter={() => setHoveredRegion({ name: "Jammu & Kashmir", p: 0.05, conf: "High", lead: selectedDay })} />
+                        {/* Western Rajasthan */}
+                        <path d="M 60 70 L 95 65 L 105 105 L 55 110 Z" fill={pal[6]} stroke="currentColor" strokeWidth="0.8" className="text-border hover:opacity-80 transition-opacity cursor-pointer" onMouseEnter={() => setHoveredRegion({ name: "West Rajasthan", p: 0.34, conf: "Low", lead: selectedDay })} />
+                        {/* Gujarat & Saurashtra */}
+                        <path d="M 45 115 L 75 112 L 80 145 L 40 140 Z" fill={pal[5]} stroke="currentColor" strokeWidth="0.8" className="text-border hover:opacity-80 transition-opacity cursor-pointer" onMouseEnter={() => setHoveredRegion({ name: "Saurashtra & Kutch", p: 0.30, conf: "Low", lead: selectedDay })} />
+                        {/* Central MP */}
+                        <path d="M 98 75 L 145 78 L 140 120 L 90 115 Z" fill={pal[3]} stroke="currentColor" strokeWidth="0.8" className="text-border hover:opacity-80 transition-opacity cursor-pointer" onMouseEnter={() => setHoveredRegion({ name: "Madhya Pradesh", p: 0.11, conf: "Normal", lead: selectedDay })} />
+                        {/* Vidarbha & Maharashtra */}
+                        <path d="M 85 130 L 135 125 L 130 160 L 75 155 Z" fill={pal[6]} stroke="currentColor" strokeWidth="0.8" className="text-border hover:opacity-80 transition-opacity cursor-pointer" onMouseEnter={() => setHoveredRegion({ name: "Vidarbha", p: 0.28, conf: "Low", lead: selectedDay })} />
+                        {/* East & Odisha */}
+                        <path d="M 142 95 L 180 100 L 175 140 L 138 135 Z" fill={pal[4]} stroke="currentColor" strokeWidth="0.8" className="text-border hover:opacity-80 transition-opacity cursor-pointer" onMouseEnter={() => setHoveredRegion({ name: "Odisha", p: 0.18, conf: "Reduced", lead: selectedDay })} />
+                        {/* North East Assam */}
+                        <path d="M 185 65 L 225 60 L 220 90 L 180 92 Z" fill={pal[2]} stroke="currentColor" strokeWidth="0.8" className="text-border hover:opacity-80 transition-opacity cursor-pointer" onMouseEnter={() => setHoveredRegion({ name: "Assam & Meghalaya", p: 0.08, conf: "Normal", lead: selectedDay })} />
+                        {/* Southern Peninsula */}
+                        <path d="M 88 165 L 125 162 L 115 210 L 80 185 Z" fill={pal[0]} stroke="currentColor" strokeWidth="0.8" className="text-border hover:opacity-80 transition-opacity cursor-pointer" onMouseEnter={() => setHoveredRegion({ name: "Kerala", p: 0.04, conf: "High", lead: selectedDay })} />
+                        {/* Tamil Nadu */}
+                        <path d="M 115 170 L 140 172 L 125 215 L 110 212 Z" fill={pal[1]} stroke="currentColor" strokeWidth="0.8" className="text-border hover:opacity-80 transition-opacity cursor-pointer" onMouseEnter={() => setHoveredRegion({ name: "Tamil Nadu", p: 0.05, conf: "High", lead: selectedDay })} />
+                      </svg>
+                    </div>
+
+                    {/* Compact Scale Legend */}
+                    <div className="flex items-center justify-between pt-2 border-t border-border/40 text-[10px] font-mono text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <span className="size-2 rounded-xs bg-[#256abf]" /> High Trust (&lt; 6%)
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <span className="size-2 rounded-xs bg-[#f0efec] border border-border" /> 10% Base Rate
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <span className="size-2 rounded-xs bg-[#9c2723]" /> High Bust Risk (&gt; 25%)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Day 1–10 Timeline Scrubber */}
+                  <div className="pt-2 border-t border-border/80">
+                    <div className="flex items-center justify-between text-xs font-mono mb-2">
+                      <span className="text-muted-foreground font-semibold">LEAD DAY TIMELINE</span>
+                      <span className="text-foreground font-bold">D1 → D10</span>
+                    </div>
                     <div className="grid grid-cols-10 gap-1">
                       {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((d) => (
                         <button
                           key={d}
                           type="button"
                           onClick={() => setSelectedDay(d)}
-                          className={`rounded py-1 text-center font-mono text-xs transition-all ${
+                          className={`rounded py-1.5 text-xs font-mono transition-all ${
                             selectedDay === d
-                              ? "bg-primary text-primary-foreground font-bold shadow-xs scale-105"
-                              : "border border-border/60 bg-muted/40 hover:bg-accent text-foreground"
+                              ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                              : "border border-border/60 bg-muted/40 hover:bg-muted text-foreground"
                           }`}
                         >
                           D{d}
@@ -320,6 +319,7 @@ export default function Home() {
                       ))}
                     </div>
                   </div>
+
                 </div>
               </div>
             </div>
@@ -328,271 +328,376 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 3. TRUST METRICS STRIP */}
-      <section className="border-b border-border/70 bg-card/60 py-6">
+      {/* 3. SCIENTIFIC SPECIFICATION TRANSITION STRIP */}
+      <section className="border-b border-border/80 bg-card py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center divide-y md:divide-y-0 md:divide-x divide-border/60">
-            <div className="pt-2 md:pt-0">
-              <div className="text-3xl sm:text-4xl font-black font-mono tracking-tight text-foreground">36</div>
-              <div className="mt-1 text-xs font-semibold tracking-wider uppercase text-muted-foreground">IMD Subdivisions</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-left divide-y md:divide-y-0 md:divide-x divide-border/70">
+            <div className="pt-4 md:pt-0">
+              <div className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-foreground">36</div>
+              <div className="mt-2 text-xs font-mono font-bold tracking-wider uppercase text-muted-foreground">IMD SUBDIVISIONS</div>
+              <p className="text-xs text-muted-foreground mt-1">Full polygon masks covering peninsular & continental India</p>
             </div>
-            <div className="pt-4 md:pt-0 md:pl-6">
-              <div className="text-3xl sm:text-4xl font-black font-mono tracking-tight text-foreground">10</div>
-              <div className="mt-1 text-xs font-semibold tracking-wider uppercase text-muted-foreground">Forecast Lead Days</div>
+            <div className="pt-4 md:pt-0 md:pl-8">
+              <div className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-foreground">10</div>
+              <div className="mt-2 text-xs font-mono font-bold tracking-wider uppercase text-muted-foreground">FORECAST DAYS</div>
+              <p className="text-xs text-muted-foreground mt-1">24-hour windows evaluated sequentially from Day 1 to Day 10</p>
             </div>
-            <div className="pt-4 md:pt-0 md:pl-6">
-              <div className="text-3xl sm:text-4xl font-black font-mono tracking-tight text-foreground">50</div>
-              <div className="mt-1 text-xs font-semibold tracking-wider uppercase text-muted-foreground">Ensemble Members</div>
+            <div className="pt-4 md:pt-0 md:pl-8">
+              <div className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-foreground">50</div>
+              <div className="mt-2 text-xs font-mono font-bold tracking-wider uppercase text-muted-foreground">ENSEMBLE MEMBERS</div>
+              <p className="text-xs text-muted-foreground mt-1">Perturbed ECMWF IFS trajectories capturing physical divergence</p>
             </div>
-            <div className="pt-4 md:pt-0 md:pl-6">
-              <div className="text-3xl sm:text-4xl font-black font-mono tracking-tight text-primary">P(BUST)</div>
-              <div className="mt-1 text-xs font-semibold tracking-wider uppercase text-muted-foreground">Calibrated Trust Signal</div>
+            <div className="pt-4 md:pt-0 md:pl-8">
+              <div className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-primary">P(BUST)</div>
+              <div className="mt-2 text-xs font-mono font-bold tracking-wider uppercase text-muted-foreground">FORECAST TRUST SIGNAL</div>
+              <p className="text-xs text-muted-foreground mt-1">Calibrated failure likelihood when error exceeds 20 mm / 2×</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 4. PROBLEM SECTION */}
-      <section id="problem" className="py-20 border-b border-border/60">
+      {/* 4. EDITORIAL PROBLEM STATEMENT */}
+      <section id="problem" className="py-24 border-b border-border/70 bg-[#fcfcfb] dark:bg-[#121211]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl space-y-4">
-            <div className="text-xs font-mono font-semibold uppercase tracking-wider text-primary">
-              THE OPERATIONAL CHALLENGE
+          <div className="max-w-4xl space-y-6 text-left">
+            <div className="text-xs font-mono font-bold uppercase tracking-wider text-primary">
+              THE FUNDAMENTAL LIMITATION
             </div>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight uppercase text-foreground">
-              The Forecast Is Not The Whole Story.
+            
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight uppercase text-foreground leading-[1.08]">
+              A FORECAST TELLS YOU WHAT MAY HAPPEN. <br />
+              <span className="text-muted-foreground">BUT NOT HOW MUCH TO TRUST IT.</span>
             </h2>
-            <p className="text-base sm:text-lg text-muted-foreground leading-relaxed">
-              A deterministic forecast predicts what numerical weather models expect to happen. 
-              However, for disaster response managers, dam operators, and district officials, rainfall point predictions alone fail to reveal forecast fragility.
+
+            <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl font-normal">
+              Numerical weather models issue deterministic rainfall predictions. Yet disaster management officials, reservoir operators, and district collectors cannot answer from point forecasts alone: <em>Is this prediction robust or fragile?</em>
             </p>
           </div>
 
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-4 gap-4">
-            {[
-              {
-                step: "01",
-                label: "HOW UNCERTAIN IS IT?",
-                desc: "Does the 50-member ensemble cluster tightly around the forecast, or do members violently diverge with large spread anomalies?"
-              },
-              {
-                step: "02",
-                label: "HOW UNUSUAL IS THE PATTERN?",
-                desc: "Has the atmospheric regime (low-pressure depression, western disturbance, or monsoonal trough) exhibited historical failure patterns?"
-              },
-              {
-                step: "03",
-                label: "HAS THE FORECAST FLIPPED?",
-                desc: "Are successive forecast cycles flip-flopping across updates, signaling atmospheric instability and lower reliability?"
-              },
-              {
-                step: "04",
-                label: "HOW MUCH CAN BE TRUSTED?",
-                desc: "What is the calibrated probability that the forecast will bust, quantified as an absolute error > 20 mm or > 2x the rainfall threshold?"
-              }
-            ].map((p) => (
-              <div key={p.step} className="rounded-xl border border-border/80 bg-card p-6 flex flex-col justify-between hover:border-primary/50 transition-colors">
-                <div className="space-y-3">
-                  <div className="font-mono text-xs font-bold text-muted-foreground">{p.step}</div>
-                  <h3 className="font-bold text-sm text-foreground tracking-tight">{p.label}</h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{p.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Decision Progression Line */}
-          <div className="mt-10 rounded-xl border border-border bg-muted/20 p-4">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono font-semibold text-center">
-              <span className="rounded bg-background px-3 py-1.5 border border-border">RAW FORECAST</span>
-              <span className="text-muted-foreground font-bold">↓</span>
-              <span className="rounded bg-background px-3 py-1.5 border border-border">ENSEMBLE UNCERTAINTY</span>
-              <span className="text-muted-foreground font-bold">↓</span>
-              <span className="rounded bg-primary/10 text-primary border border-primary/30 px-3 py-1.5 font-bold">BUST RISK CALIBRATION</span>
-              <span className="text-muted-foreground font-bold">↓</span>
-              <span className="rounded bg-background px-3 py-1.5 border border-border">INFORMED OPERATIONAL DECISION</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 5. HOW IT WORKS (PIPELINE) */}
-      <section id="how-it-works" className="py-20 border-b border-border/60 bg-muted/10">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl space-y-3">
-            <div className="text-xs font-mono font-semibold uppercase tracking-wider text-primary">
-              END-TO-END METHODOLOGY
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-black tracking-tight uppercase text-foreground">
-              How Purva Netra Works
-            </h2>
-            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-              From global numerical weather prediction data to regional ground-truth verification — engineered with strict leakage guards and zero in-sample contamination.
-            </p>
-          </div>
-
-          {/* Structured Visual Pipeline Flow */}
-          <div className="mt-12 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="rounded-xl border border-border bg-card p-5 space-y-2">
-                <div className="text-xs font-mono font-bold text-primary flex items-center gap-2">
-                  <Database className="size-4" /> DATA INGESTION
-                </div>
-                <h4 className="font-bold text-sm text-foreground">ECMWF IFS + IMD Truth</h4>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Extracts 0.4° deterministic HRES alongside 50-member 1.5° ENS precipitation from WeatherBench 2, aligned with IMD 0.25° gridded observation truth.
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-border bg-card p-5 space-y-2">
-                <div className="text-xs font-mono font-bold text-primary flex items-center gap-2">
-                  <Layers className="size-4" /> REGION MAPPING & FEATURES
-                </div>
-                <h4 className="font-bold text-sm text-foreground">Subdivision Aggregation</h4>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Computes 36 area-weighted meteorological subdivision totals, calculating ensemble spread anomalies, 12-hour cycle revision jumps, and Flip-Flop Index (FFI).
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-border bg-card p-5 space-y-2">
-                <div className="text-xs font-mono font-bold text-primary flex items-center gap-2">
-                  <Cpu className="size-4" /> BUST DETECTION & ML
-                </div>
-                <h4 className="font-bold text-sm text-foreground">LightGBM & Isotonic Heads</h4>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Evaluates bust binary criteria (|F - O| &gt; 20 mm and |F - O| &gt; 2 × max(F, O)) and calibrates probabilities against Leave-One-Year-Out folds.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="rounded-xl border border-border bg-card p-5 space-y-2">
-                <div className="text-xs font-mono font-bold text-primary flex items-center gap-2">
-                  <Activity className="size-4" /> EXPLAINABILITY (FORECAST DNA)
-                </div>
-                <h4 className="font-bold text-sm text-foreground">SHAP Attribution & Analogs</h4>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Generates transparent evidence groups (spread, revision, analogs, novelty, regime, state) and finds historical top-5 analogs using EOF error memory.
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-border bg-card p-5 space-y-2">
-                <div className="text-xs font-mono font-bold text-primary flex items-center gap-2">
-                  <ShieldCheck className="size-4" /> VERIFICATION & TRUST LEDGER
-                </div>
-                <h4 className="font-bold text-sm text-foreground">Held-out Brier Skill & NWPEval</h4>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Computes POD, FAR, CSI, ETS contingency scores and enforces strict gates before shipping model versions to operational personnel.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 6. WHY PURVA NETRA (FEATURE CARDS) */}
-      <section id="why" className="py-20 border-b border-border/60">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl space-y-3">
-            <div className="text-xs font-mono font-semibold uppercase tracking-wider text-primary">
-              CORE CAPABILITIES
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-black tracking-tight uppercase text-foreground">
-              Why Purva Netra
-            </h2>
-            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-              Built specifically for the unique convective dynamics and forecast vulnerabilities of the Indian monsoon.
-            </p>
-          </div>
-
-          <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {/* Editorial Question Cards */}
+          <div className="mt-14 grid grid-cols-1 md:grid-cols-4 gap-6 text-left">
             {[
               {
                 num: "01",
-                title: "FORECAST BUST PROBABILITY",
-                desc: "Calibrated probability P(bust) computed for each lead day (1–10) with High, Normal, Reduced, and Low confidence classifications."
+                q: "HOW UNCERTAIN IS IT?",
+                detail: "Are the 50 ensemble members clustered around the deterministic run, or does severe spread anomaly indicate atmospheric chaos?"
               },
               {
                 num: "02",
-                title: "ENSEMBLE-AWARE TRUST",
-                desc: "Direct integration of 50-member ECMWF IFS ensemble spread anomaly against lead-day climatology to catch unpredicted model divergence."
+                q: "HOW UNUSUAL IS THE REGIME?",
+                detail: "Is the current monsoon synoptic state an analog to historical cases where numerical models systematically underpredicted rain?"
               },
               {
                 num: "03",
-                title: "REGION-LEVEL INTELLIGENCE",
-                desc: "Precise polygonal mask coverage for all 36 IMD meteorological subdivisions, from Western Ghats to Gangetic West Bengal."
+                q: "HAS THE FORECAST CHANGED?",
+                detail: "Did the forecast jump or flip-flop across successive cycles, signaling numerical instability before the storm arrives?"
               },
               {
                 num: "04",
-                title: "FORECAST EVOLUTION",
-                desc: "Stacked visual timeline tracking when the forecast changed, whether ensemble spread expanded, and whether the model flip-flopped."
-              },
-              {
-                num: "05",
-                title: "FORECAST DNA",
-                desc: "SHAP-driven explainability identifying the exact physical contributor behind uncertainty: spread anomaly, recent cycle revision, or analog history."
-              },
-              {
-                num: "06",
-                title: "VERIFICATION AGAINST TRUTH",
-                desc: "Systematic contingency metrics (POD, FAR, CSI, ETS) computed against real IMD gridded observations to prove reliability over time."
-              },
-            ].map((card) => (
-              <div 
-                key={card.num} 
-                className="rounded-xl border border-border/70 bg-card p-6 space-y-3 hover:border-primary/50 transition-all shadow-xs"
-              >
-                <div className="font-mono text-xs font-bold text-muted-foreground">{card.num}</div>
-                <h3 className="font-bold text-sm tracking-tight text-foreground">{card.title}</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">{card.desc}</p>
+                q: "HOW MUCH CAN BE TRUSTED?",
+                detail: "What is the empirical probability that this specific forecast will bust by more than 20 mm or 2x the predicted volume?"
+              }
+            ].map((item) => (
+              <div key={item.num} className="border-t-2 border-border pt-4 space-y-2">
+                <span className="font-mono text-xs font-bold text-primary">{item.num}</span>
+                <h3 className="text-sm font-bold tracking-tight text-foreground">{item.q}</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">{item.detail}</p>
               </div>
             ))}
+          </div>
+
+          {/* Clean Horizontal Progression */}
+          <div className="mt-16 rounded-xl border border-border bg-card p-6">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono font-bold text-center">
+              <div className="rounded-md border border-border px-4 py-2 bg-secondary/50">RAW FORECAST</div>
+              <span className="text-muted-foreground">→</span>
+              <div className="rounded-md border border-border px-4 py-2 bg-secondary/50">ENSEMBLE UNCERTAINTY</div>
+              <span className="text-muted-foreground">→</span>
+              <div className="rounded-md border border-primary/40 bg-primary/10 text-primary px-4 py-2 font-black">
+                P(BUST) RISK CALIBRATION
+              </div>
+              <span className="text-muted-foreground">→</span>
+              <div className="rounded-md border border-border px-4 py-2 bg-secondary/50">OPERATIONAL TRUST</div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* 7. PRODUCT EXPERIENCE SECTION (WORKFLOW) */}
-      <section id="workflow" className="py-20 border-b border-border/60 bg-muted/10">
+      {/* 5. HOW IT WORKS — SCIENTIFIC PIPELINE */}
+      <section id="how-it-works" className="py-24 border-b border-border/70 bg-card">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl space-y-3">
-            <div className="text-xs font-mono font-semibold uppercase tracking-wider text-primary">
-              OPERATIONAL WORKFLOW
+          <div className="max-w-3xl space-y-3 text-left">
+            <div className="text-xs font-mono font-bold uppercase tracking-wider text-primary">
+              METHODOLOGY & PIPELINE
             </div>
-            <h2 className="text-3xl sm:text-4xl font-black tracking-tight uppercase text-foreground">
-              A Complete Operational System
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight uppercase text-foreground">
+              How Purva Netra Works
             </h2>
-            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-              Purva Netra is not a mock concept. Explore the actual operational workflow provided inside the application console:
+            <p className="text-base text-muted-foreground leading-relaxed">
+              A scientific pipeline converting high-dimensional weather grids into regional, calibrated trust signals with strict leakage guards.
             </p>
           </div>
 
-          <div className="mt-12 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {/* Large Connected Scientific Pipeline */}
+          <div className="mt-16 relative">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+              {/* Step 1 */}
+              <div className="rounded-xl border border-border bg-background p-6 space-y-3 relative shadow-xs">
+                <div className="font-mono text-xs font-bold text-primary flex items-center justify-between">
+                  <span>STAGE 01</span>
+                  <Database className="size-4" />
+                </div>
+                <h3 className="font-bold text-base text-foreground">ECMWF HRES + ENS + IMD TRUTH</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Extracts 0.4° deterministic HRES alongside 50-member 1.5° ENS precipitation from WeatherBench 2, matching against gridded 0.25° IMD daily rainfall observations.
+                </p>
+                <div className="pt-2 text-[10px] font-mono text-muted-foreground border-t border-border/40">
+                  Data: WeatherBench 2 · IMD Pune 0.25°
+                </div>
+              </div>
+
+              {/* Step 2 */}
+              <div className="rounded-xl border border-border bg-background p-6 space-y-3 relative shadow-xs">
+                <div className="font-mono text-xs font-bold text-primary flex items-center justify-between">
+                  <span>STAGE 02</span>
+                  <Layers className="size-4" />
+                </div>
+                <h3 className="font-bold text-base text-foreground">FEATURE EXTRACTION & SPREAD</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Aggregates rainfall across 36 subdivision polygonal masks. Computes ensemble spread anomalies, 12-hour revision vectors, and Flip-Flop Index (FFI) metrics.
+                </p>
+                <div className="pt-2 text-[10px] font-mono text-muted-foreground border-t border-border/40">
+                  Features: Spread Anomaly · Revision · FFI
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div className="rounded-xl border border-border bg-background p-6 space-y-3 relative shadow-xs">
+                <div className="font-mono text-xs font-bold text-primary flex items-center justify-between">
+                  <span>STAGE 03</span>
+                  <Cpu className="size-4" />
+                </div>
+                <h3 className="font-bold text-base text-foreground">BUST DETECTION & CALIBRATION</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Labels busts where |F - O| &gt; 20 mm and 2× max(F, O). Trains LightGBM with isotonic calibration heads using Leave-One-Year-Out cross-validation.
+                </p>
+                <div className="pt-2 text-[10px] font-mono text-muted-foreground border-t border-border/40">
+                  Model: LightGBM + Isotonic Calibration
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+              {/* Step 4 */}
+              <div className="rounded-xl border border-border bg-background p-6 space-y-3 relative shadow-xs">
+                <div className="font-mono text-xs font-bold text-primary flex items-center justify-between">
+                  <span>STAGE 04</span>
+                  <Activity className="size-4" />
+                </div>
+                <h3 className="font-bold text-base text-foreground">EXPLANATION (FORECAST DNA)</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Decomposes bust risk into physical evidence groups via SHAP TreeExplainer (spread, revision, analogs, novelty, regime, state) with historical analog matching.
+                </p>
+                <div className="pt-2 text-[10px] font-mono text-muted-foreground border-t border-border/40">
+                  Explainability: SHAP TreeExplainer · xeofs EOF Analogs
+                </div>
+              </div>
+
+              {/* Step 5 */}
+              <div className="rounded-xl border border-border bg-background p-6 space-y-3 relative shadow-xs">
+                <div className="font-mono text-xs font-bold text-primary flex items-center justify-between">
+                  <span>STAGE 05</span>
+                  <ShieldCheck className="size-4" />
+                </div>
+                <h3 className="font-bold text-base text-foreground">VERIFICATION & TRUST LEDGER</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Evaluates contingency scores (POD, FAR, CSI, ETS) and reliability diagrams against observed truth. Freezes models in the immutable Trust Ledger before release.
+                </p>
+                <div className="pt-2 text-[10px] font-mono text-muted-foreground border-t border-border/40">
+                  Verification: nwpeval · scores · Brier Score
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. WHY PURVA NETRA — EDITORIAL FOUR PILLARS */}
+      <section id="why" className="py-24 border-b border-border/70 bg-[#fcfcfb] dark:bg-[#121211]">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="max-w-3xl space-y-3 text-left">
+            <div className="text-xs font-mono font-bold uppercase tracking-wider text-primary">
+              CORE CAPABILITIES
+            </div>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight uppercase text-foreground">
+              Why Purva Netra
+            </h2>
+            <p className="text-base text-muted-foreground leading-relaxed">
+              Designed specifically for operational meteorologists, water managers, and disaster preparedness coordinators.
+            </p>
+          </div>
+
+          <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
+            <div className="rounded-xl border border-border bg-card p-8 space-y-4 hover:border-primary/50 transition-colors">
+              <span className="font-mono text-xs font-bold text-primary">01</span>
+              <h3 className="text-xl font-bold tracking-tight text-foreground">FORECAST TRUST</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Know exactly where and when numerical weather prediction reliability drops across Day 1 to Day 10 leads, classified into four explicit confidence tiers: High, Normal, Reduced, and Low.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-border bg-card p-8 space-y-4 hover:border-primary/50 transition-colors">
+              <span className="font-mono text-xs font-bold text-primary">02</span>
+              <h3 className="text-xl font-bold tracking-tight text-foreground">ENSEMBLE EVIDENCE</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                See physical disagreement across all 50 ensemble members normalized as spread anomaly against seasonal climatology, catching localized convective breakdowns before deterministic runs notice.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-border bg-card p-8 space-y-4 hover:border-primary/50 transition-colors">
+              <span className="font-mono text-xs font-bold text-primary">03</span>
+              <h3 className="text-xl font-bold tracking-tight text-foreground">FORECAST EVOLUTION</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Understand when and why confidence changed across successive 12-hour forecast cycles, tracing run-to-run consistency and sudden jumps using stacked evolution timelines.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-border bg-card p-8 space-y-4 hover:border-primary/50 transition-colors">
+              <span className="font-mono text-xs font-bold text-primary">04</span>
+              <h3 className="text-xl font-bold tracking-tight text-foreground">VERIFICATION AGAINST TRUTH</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Transparent verification against actual IMD gridded observation rainfall. Evaluates Probability of Detection (POD) and Critical Success Index (CSI) for heavy rainfall (&ge; 64.5 mm).
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 7. DEDICATED MAP SECTION */}
+      <section id="map-preview" className="py-24 border-b border-border/70 bg-card">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            
+            <div className="lg:col-span-5 space-y-6 text-left">
+              <div className="text-xs font-mono font-bold uppercase tracking-wider text-primary">
+                SPATIAL TRUST INTELLIGENCE
+              </div>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight uppercase text-foreground leading-[1.08]">
+                SEE WHERE <br />
+                <span className="text-primary">TRUST BREAKS DOWN.</span>
+              </h2>
+              <p className="text-base text-muted-foreground leading-relaxed font-normal">
+                An interactive MapLibre GL map of all 36 Indian meteorological subdivisions. Switch effortlessly between Forecast Rainfall and Calibrated P(Bust) to pinpoint regional risks in sub-100 milliseconds.
+              </p>
+              
+              <div className="pt-2">
+                <Button 
+                  asChild 
+                  size="lg" 
+                  className="bg-primary hover:bg-primary/95 text-primary-foreground font-bold tracking-tight px-6 h-11 text-sm shadow-xs"
+                >
+                  <Link to="/map?day=5&layer=pbust">
+                    EXPLORE THE MAP
+                    <ArrowRight className="ml-2 size-4" />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+
+            {/* Map Preview Graphic */}
+            <div className="lg:col-span-7">
+              <div className="rounded-xl border border-border bg-background p-6 shadow-xl space-y-4">
+                <div className="flex items-center justify-between text-xs font-mono border-b border-border/70 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-foreground">IMD SUBDIVISIONS CHOROPLETH</span>
+                    <span className="text-muted-foreground">·</span>
+                    <span className="text-primary font-semibold">DAY 5 LEAD</span>
+                  </div>
+                  <span className="text-muted-foreground">SPLIT VIEW: RAIN | P(BUST)</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 h-64">
+                  {/* Left panel: Forecast Rain */}
+                  <div className="rounded-lg border border-border/70 bg-card p-3 flex flex-col justify-between">
+                    <div className="text-[10px] font-mono text-muted-foreground flex justify-between">
+                      <span>FORECAST RAINFALL</span>
+                      <span className="text-foreground font-semibold">mm / 24h</span>
+                    </div>
+                    <div className="h-44 flex items-center justify-center">
+                      <svg viewBox="0 0 160 160" className="h-full w-full opacity-90">
+                        <circle cx="80" cy="80" r="50" fill="none" stroke="#256abf" strokeWidth="1.5" strokeDasharray="3 3" />
+                        <path d="M 60 50 L 100 45 L 110 85 L 65 95 Z" fill="#6da7ec" />
+                        <path d="M 65 95 L 110 85 L 100 130 L 60 115 Z" fill="#256abf" />
+                      </svg>
+                    </div>
+                    <div className="text-[10px] font-mono text-center text-muted-foreground">
+                      Sequential Blue Scale (1 → 65 mm)
+                    </div>
+                  </div>
+
+                  {/* Right panel: P(Bust) Risk */}
+                  <div className="rounded-lg border border-border/70 bg-card p-3 flex flex-col justify-between">
+                    <div className="text-[10px] font-mono text-muted-foreground flex justify-between">
+                      <span>CALIBRATED P(BUST)</span>
+                      <span className="text-destructive font-semibold">Risk Divergence</span>
+                    </div>
+                    <div className="h-44 flex items-center justify-center">
+                      <svg viewBox="0 0 160 160" className="h-full w-full opacity-90">
+                        <circle cx="80" cy="80" r="50" fill="none" stroke="#b8322f" strokeWidth="1.5" strokeDasharray="3 3" />
+                        <path d="M 60 50 L 100 45 L 110 85 L 65 95 Z" fill="#eb8a75" />
+                        <path d="M 65 95 L 110 85 L 100 130 L 60 115 Z" fill="#9c2723" />
+                      </svg>
+                    </div>
+                    <div className="text-[10px] font-mono text-center text-muted-foreground">
+                      Diverging Trust Palette (&lt; 3% → &gt; 35%)
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* 8. PRODUCT WORKFLOW SEQUENCE */}
+      <section id="workflow" className="py-24 border-b border-border/70 bg-[#fcfcfb] dark:bg-[#121211]">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="max-w-3xl space-y-3 text-left">
+            <div className="text-xs font-mono font-bold uppercase tracking-wider text-primary">
+              END-TO-END CONSOLE EXPERIENCE
+            </div>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight uppercase text-foreground">
+              A Complete Operational System
+            </h2>
+            <p className="text-base text-muted-foreground leading-relaxed">
+              Every workflow step is fully implemented and accessible in the Purva Netra console.
+            </p>
+          </div>
+
+          <div className="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
             {[
-              { to: "/brief", title: "BRIEFING", desc: "Top-line summary of low-confidence regions, heavy rain flags, and highest uncertainty days." },
-              { to: "/matrix", title: "MATRIX", desc: "36 subdivisions × 10 days interactive reliability table with keyboard arrow navigation." },
-              { to: "/map", title: "MAP", desc: "Sub-100ms MapLibre GL choropleth with synchronized dual-split view and trust lenses." },
-              { to: "/region/8", title: "REGION", desc: "In-depth 10-day risk profile, expected error ranges, and historical analog events." },
-              { to: "/region/8?tab=why", title: "FORECAST DNA", desc: "SHAP waterfall attribution categorizing the physical factors driving bust risk." },
-              { to: "/region/8?tab=evolution", title: "EVOLUTION", desc: "Stacked charts answering when the forecast changed and if the spread narrowed." },
-              { to: "/replay", title: "TIME MACHINE", desc: "Three-act historical replay with day-by-day truth reveals and live score ticker." },
-              { to: "/region/8?tab=verify", title: "VERIFY", desc: "Contingency verification against actual IMD observations with nwpeval scores." },
-              { to: "/ledger", title: "TRUST LEDGER", desc: "Formal evaluation ledger auditing model gate criteria and reliability bins." },
-              { to: "/ops", title: "OPERATIONS", desc: "Live runner for near-real-time discovery, fetch, inference, and audit trails." },
+              { to: "/brief", title: "BRIEFING", desc: "Top-line situational summary: low-confidence subdivisions, heavy-rain alerts, and most uncertain lead day." },
+              { to: "/matrix", title: "MATRIX", desc: "36 subdivisions × 10 lead days reliability grid with keyboard arrow navigation and sorting by zone or risk." },
+              { to: "/map", title: "MAP VIEW", desc: "Interactive choropleth with synchronized dual-split view and P(Bust), Forecast Rain, and Spread lenses." },
+              { to: "/region/8", title: "REGION DETAIL", desc: "10-day subdivision forecast risk timeline, expected error bounds (q50/q90), and historical analog events." },
+              { to: "/region/8?tab=why", title: "FORECAST DNA", desc: "SHAP waterfall attribution identifying exact physical contributors: spread anomaly, revision, or novelty." },
+              { to: "/replay", title: "TIME MACHINE", desc: "Three-act historical replay with day-by-day truth reveals and automated Brier score ticker against B2 spread baseline." },
             ].map((w, idx) => (
               <Link 
                 key={idx} 
                 to={w.to} 
-                className="group rounded-lg border border-border/80 bg-card p-4 hover:border-primary/60 hover:shadow-sm transition-all flex flex-col justify-between"
+                className="group rounded-xl border border-border bg-card p-6 hover:border-primary/60 hover:shadow-md transition-all flex flex-col justify-between"
               >
-                <div>
-                  <div className="flex items-center justify-between text-xs font-mono font-semibold text-primary">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs font-mono font-bold text-primary">
                     <span>{w.title}</span>
-                    <ExternalLink className="size-3 text-muted-foreground group-hover:text-primary transition-colors" />
+                    <ExternalLink className="size-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
                   </div>
-                  <p className="mt-2 text-[11px] text-muted-foreground leading-relaxed">{w.desc}</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{w.desc}</p>
                 </div>
-                <div className="mt-3 text-[10px] font-mono text-muted-foreground group-hover:text-foreground transition-colors">
-                  Open screen →
+                <div className="mt-4 text-[11px] font-mono font-semibold text-foreground group-hover:text-primary transition-colors">
+                  Open in Console →
                 </div>
               </Link>
             ))}
@@ -600,34 +705,34 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 8. TECHNOLOGY STACK */}
-      <section id="tech" className="py-20 border-b border-border/60">
+      {/* 9. TECHNOLOGY STACK */}
+      <section id="tech" className="py-24 border-b border-border/70 bg-card">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl space-y-3">
-            <div className="text-xs font-mono font-semibold uppercase tracking-wider text-primary">
-              ENGINEERED FOR RIGOR
+          <div className="max-w-3xl space-y-3 text-left">
+            <div className="text-xs font-mono font-bold uppercase tracking-wider text-primary">
+              SCIENTIFIC & SYSTEM ARCHITECTURE
             </div>
-            <h2 className="text-3xl sm:text-4xl font-black tracking-tight uppercase text-foreground">
-              Technology Architecture
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight uppercase text-foreground">
+              Technology Stack
             </h2>
-            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-              Every library, database, and computation engine strictly matches the tested implementation code.
+            <p className="text-base text-muted-foreground leading-relaxed">
+              Built on production-grade scientific computing and operational web standards.
             </p>
           </div>
 
-          <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+          <div className="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
+            <div className="rounded-xl border border-border bg-background p-6 space-y-4">
               <div className="font-mono text-xs font-bold text-primary uppercase">DATA INGESTION</div>
               <ul className="space-y-2 text-xs font-mono text-muted-foreground">
                 <li className="flex items-center gap-2"><CheckCircle2 className="size-3.5 text-primary" /> ECMWF IFS HRES (0.4°)</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="size-3.5 text-primary" /> ECMWF IFS ENS (50-mbr)</li>
+                <li className="flex items-center gap-2"><CheckCircle2 className="size-3.5 text-primary" /> ECMWF IFS ENS (50 members)</li>
                 <li className="flex items-center gap-2"><CheckCircle2 className="size-3.5 text-primary" /> WeatherBench 2 (GCS)</li>
                 <li className="flex items-center gap-2"><CheckCircle2 className="size-3.5 text-primary" /> IMD 0.25° Gridded Rain</li>
                 <li className="flex items-center gap-2"><CheckCircle2 className="size-3.5 text-primary" /> xarray & netCDF4</li>
               </ul>
             </div>
 
-            <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+            <div className="rounded-xl border border-border bg-background p-6 space-y-4">
               <div className="font-mono text-xs font-bold text-primary uppercase">SCIENCE & ML</div>
               <ul className="space-y-2 text-xs font-mono text-muted-foreground">
                 <li className="flex items-center gap-2"><CheckCircle2 className="size-3.5 text-primary" /> LightGBM Quantile Heads</li>
@@ -638,24 +743,24 @@ export default function Home() {
               </ul>
             </div>
 
-            <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+            <div className="rounded-xl border border-border bg-background p-6 space-y-4">
               <div className="font-mono text-xs font-bold text-primary uppercase">SYSTEM & API</div>
               <ul className="space-y-2 text-xs font-mono text-muted-foreground">
                 <li className="flex items-center gap-2"><CheckCircle2 className="size-3.5 text-primary" /> FastAPI & Uvicorn</li>
                 <li className="flex items-center gap-2"><CheckCircle2 className="size-3.5 text-primary" /> DuckDB SQL Engine</li>
                 <li className="flex items-center gap-2"><CheckCircle2 className="size-3.5 text-primary" /> Apache Parquet Partitioning</li>
                 <li className="flex items-center gap-2"><CheckCircle2 className="size-3.5 text-primary" /> SQLite State Store & Audit</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="size-3.5 text-primary" /> Docker & Docker Compose</li>
+                <li className="flex items-center gap-2"><CheckCircle2 className="size-3.5 text-primary" /> Docker Containerized</li>
               </ul>
             </div>
 
-            <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+            <div className="rounded-xl border border-border bg-background p-6 space-y-4">
               <div className="font-mono text-xs font-bold text-primary uppercase">FRONTEND & UI</div>
               <ul className="space-y-2 text-xs font-mono text-muted-foreground">
                 <li className="flex items-center gap-2"><CheckCircle2 className="size-3.5 text-primary" /> React 18 & TypeScript</li>
                 <li className="flex items-center gap-2"><CheckCircle2 className="size-3.5 text-primary" /> MapLibre GL v6</li>
                 <li className="flex items-center gap-2"><CheckCircle2 className="size-3.5 text-primary" /> ECharts Visualization</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="size-3.5 text-primary" /> Tailwind CSS & Vanilla CSS</li>
+                <li className="flex items-center gap-2"><CheckCircle2 className="size-3.5 text-primary" /> Tailwind CSS</li>
                 <li className="flex items-center gap-2"><CheckCircle2 className="size-3.5 text-primary" /> TanStack Query & Zustand</li>
               </ul>
             </div>
@@ -663,27 +768,37 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 9. LIVE DEMO SECTION */}
-      <section id="demo" className="py-24 border-b border-border/60 bg-card">
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center space-y-6">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-mono text-primary font-semibold">
-            READY FOR EVALUATION
+      {/* 10. LIVE DEMO SECTION — STRONG CONTRAST */}
+      <section id="demo" className="py-28 border-b border-border/80 bg-[#161615] text-[#fcfcfb] relative overflow-hidden">
+        {/* Dark subtle grid */}
+        <div 
+          className="absolute inset-0 pointer-events-none opacity-20 [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_80%)]" 
+          style={{
+            backgroundImage: "linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)",
+            backgroundSize: "40px 40px",
+            color: "#ffffff"
+          }}
+        />
+
+        <div className="relative mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center space-y-8">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/20 px-3.5 py-1 text-xs font-mono text-primary font-bold">
+            OPERATIONAL VERIFICATION READY
           </div>
 
-          <h2 className="text-4xl sm:text-5xl font-black tracking-tight uppercase text-foreground leading-tight">
-            See The Forecast. <br />
-            Understand The Trust.
+          <h2 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight uppercase leading-[1.05]">
+            SEE THE FORECAST. <br />
+            <span className="text-primary">UNDERSTAND THE TRUST.</span>
           </h2>
 
-          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Explore how Purva Netra tracks forecast uncertainty, explains changing confidence, and verifies outcomes for 36 Indian subdivisions.
+          <p className="text-base sm:text-lg text-[#a1a19a] max-w-2xl mx-auto leading-relaxed font-normal">
+            Follow a forecast from its initial prediction through uncertainty, revision, and verification across 36 meteorological subdivisions.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
             <Button 
               asChild 
               size="lg" 
-              className="bg-primary hover:bg-primary/95 text-primary-foreground font-semibold px-8 h-12 shadow-lg"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold tracking-tight px-8 h-12 text-sm shadow-xl"
             >
               <Link to="/brief">
                 LAUNCH PURVA NETRA
@@ -695,23 +810,23 @@ export default function Home() {
               asChild 
               variant="outline" 
               size="lg" 
-              className="border-border hover:bg-accent font-medium px-6 h-12"
+              className="border-[#383835] bg-transparent text-[#fcfcfb] hover:bg-[#252524] font-semibold px-7 h-12 text-sm"
             >
-              <Link to="/replay">EXPLORE TIME MACHINE</Link>
+              <Link to="/replay">EXPLORE LIVE DEMO</Link>
             </Button>
           </div>
         </div>
       </section>
 
-      {/* 10. FOOTER */}
-      <footer className="py-12 bg-background text-xs text-muted-foreground">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6 border-t border-border/50 pt-8">
-          <div>
-            <div className="font-bold text-foreground tracking-tight text-sm">PURVA NETRA</div>
-            <p className="text-muted-foreground mt-0.5">Forecast Trust Intelligence · SIH 2026 PS 26079</p>
+      {/* 11. FOOTER */}
+      <footer className="py-12 bg-[#fcfcfb] dark:bg-[#121211] text-xs text-muted-foreground border-t border-border/60">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="text-left">
+            <div className="font-extrabold text-foreground tracking-tight text-sm">PURVA NETRA</div>
+            <p className="text-muted-foreground mt-0.5">FORECAST TRUST INTELLIGENCE · SIH 2026 PS 26079</p>
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-6 font-medium">
             <Link to="/brief" className="hover:text-foreground transition-colors">Console</Link>
             <Link to="/method" className="hover:text-foreground transition-colors">Method</Link>
             <a href="#tech" className="hover:text-foreground transition-colors">Technology</a>
