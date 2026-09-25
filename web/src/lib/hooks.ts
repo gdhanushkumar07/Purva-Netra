@@ -83,3 +83,14 @@ export function linkTo(path: string, patch: Record<string, string | number | und
   const s = n.toString();
   return s ? `${path}?${s}` : path;
 }
+
+export function useMediaQuery(q: string) {
+  const [m, setM] = useState(() => typeof window !== "undefined" && window.matchMedia?.(q).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(q);
+    const f = () => setM(mq.matches);
+    mq.addEventListener("change", f);
+    return () => mq.removeEventListener("change", f);
+  }, [q]);
+  return m;
+}

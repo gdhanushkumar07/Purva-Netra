@@ -9,7 +9,7 @@ from . import explain as ex
 OUT_COLS = ["init", "rid", "lead", "valid_date", "p_bust", "confidence", "p_b0", "p_b2",
             "err_q50", "err_q90", "obs_lo_mm", "obs_hi_mm", "hi_risk", "hi_type_fcst", "novelty",
             "spread_anom", "rev12", "ffi4", "regime", "f_rain", "ens_mean", "ens_q10", "ens_q90",
-            "o_rain", "bust", "hi_bust", "log_err", "thr", "abs_err_mm",
+            "o_rain", "bust", "hi_bust", "log_err", "thr", "abs_err_mm", "f_heavy_frac", "o_heavy_frac",
             "reasons_en", "reasons_hi", "reason_groups", "reason_source", "contrib", "an_cases"]
 
 

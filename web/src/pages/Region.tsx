@@ -196,7 +196,10 @@ function Verify({ rid, init }: { rid: number; init: string }) {
   const v = useVerify(rid, init);
   if (v.isLoading) return <Loading />;
   if (v.error) return <ErrorState error={v.error} />;
+  const f = (x: unknown) => (x == null ? "–" : (x as number).toFixed(2));
+  const c = v.data!.contingency;
   return (
+    <div className="space-y-3">
     <div className="rounded-lg border bg-card p-3">
       <DataTable
         cols={[
@@ -209,9 +212,20 @@ function Verify({ rid, init }: { rid: number; init: string }) {
           { key: "p_bust", label: "P(bust)", fmt: (x) => pct(x as number) },
           { key: "outcome", label: "Outcome", fmt: (x) => (x ? t(`outcome.${x}`) : "–") },
         ]}
-        rows={v.data! as unknown as Record<string, unknown>[]}
+        rows={v.data!.days as unknown as Record<string, unknown>[]}
       />
       <p className="mt-2 text-xs text-muted-foreground">Bust = log-error above the training-year 90th percentile for this region, lead and season, and |error| ≥ 5 mm. “Flagged” = P(bust) ≥ 15% (Reduced or Low).</p>
+    </div>
+    <section className="rounded-lg border bg-card p-3" aria-label="Heavy-rain contingency scores">
+      <h3 className="text-sm font-semibold">Heavy-rain contingency scores · {c.season} (nwpeval)</h3>
+      <p className="mb-2 text-xs text-muted-foreground">Event: {c.event}. HRES forecast vs IMD, all cycles in the replay store for this season. Scores are blank when no event occurred.</p>
+      <DataTable
+        cols={[{ key: "lead", label: t("common.day") }, { key: "n", label: "n" }, { key: "n_obs_events", label: "observed events" },
+          { key: "n_fcst_events", label: "forecast events" }, { key: "pod", label: "POD", fmt: f }, { key: "far", label: "FAR", fmt: f },
+          { key: "csi", label: "CSI", fmt: f }, { key: "ets", label: "ETS", fmt: f }]}
+        rows={c.by_lead as unknown as Record<string, unknown>[]}
+      />
+    </section>
     </div>
   );
 }

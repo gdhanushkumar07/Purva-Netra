@@ -23,5 +23,7 @@ const ph = await b.newContext({ viewport: { width: 390, height: 844 }, colorSche
 const pp = await ph.newPage();
 await pp.goto(base + "/brief", { waitUntil: "load" });
 await pp.screenshot({ path: `${out}/phone-brief.png` });
+await pp.goto(base + "/matrix", { waitUntil: "load" }); await pp.waitForTimeout(1500);
+await pp.screenshot({ path: `${out}/phone-matrix.png` });
 await b.close();
 console.log("ok");

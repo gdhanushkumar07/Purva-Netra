@@ -65,6 +65,9 @@ export interface RevRow { init: string; lead: number; f_rain: number; ens_mean: 
 export interface VerifyRow { lead: number; valid_date: string; f_rain: number; o_rain: number | null; abs_err_mm: number | null;
   log_err: number | null; thr: number | null; bust: number | null; p_bust: number | null; confidence: Band;
   hi_bust: number | null; outcome: Outcome | null }
+export interface Contingency { season: string; event: string;
+  by_lead: { lead: number; n: number; n_obs_events: number; n_fcst_events: number; pod: number | null; far: number | null; csi: number | null; ets: number | null }[] }
+export interface VerifyResp { days: VerifyRow[]; contingency: Contingency }
 export interface EventCase { id: string; name: string; init: string; regions: string[]; split: string; available: boolean }
 export interface ReplayResp { event: { id: string; name: string }; init: string; cells: Cell[];
   ticker: { day: number; hits: number; misses: number; false_alarms: number; n: number; brier: number | null; brier_b2: number | null }[] }
@@ -93,7 +96,7 @@ export const useExplain = (rid?: number, init?: string, lead?: number) =>
 export const useRevision = (rid?: number, valid?: string, upto?: string) =>
   useQuery({ queryKey: ["revision", rid, valid, upto], queryFn: () => get<RevRow[]>(`/revision/${rid}?valid=${valid}&upto=${upto}`), enabled: rid != null && !!valid, ...opts });
 export const useVerify = (rid?: number, init?: string) =>
-  useQuery({ queryKey: ["verify", rid, init], queryFn: () => get<VerifyRow[]>(`/verify/${rid}?init=${init}`), enabled: rid != null && !!init, ...opts });
+  useQuery({ queryKey: ["verify", rid, init], queryFn: () => get<VerifyResp>(`/verify/${rid}?init=${init}`), enabled: rid != null && !!init, ...opts });
 export const useEvents = () => useQuery({ queryKey: ["events"], queryFn: () => get<EventCase[]>("/events") });
 export const useReplay = (ev?: string) =>
   useQuery({ queryKey: ["replay", ev], queryFn: () => get<ReplayResp>(`/replay/${encodeURIComponent(ev!)}`), enabled: !!ev, ...opts });

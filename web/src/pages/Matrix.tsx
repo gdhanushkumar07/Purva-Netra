@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useMatrix } from "@/api/client";
-import { useInit, useRegionMap, prettyName, pct, pts, fmtDate, ZONE_ORDER } from "@/lib/hooks";
+import { useInit, useRegionMap, prettyName, pct, pts, fmtDate, ZONE_ORDER, useMediaQuery } from "@/lib/hooks";
+import { FieldView } from "@/components/matrix/FieldView";
 import { useSettings, useView } from "@/store";
 import { ReliabilityMatrix, type SortKey } from "@/components/matrix/ReliabilityMatrix";
 import { DataTable, ErrorState, Loading, PbustLegend, ExportButton } from "@/components/common";
@@ -18,6 +19,7 @@ export default function Matrix() {
   const view = v.get("view") ?? "grid";
   const zone = v.get("zone");
   const onlyLow = v.get("low") === "1";
+  const phone = useMediaQuery("(max-width: 599px)");
   if (m.isLoading || !init) return <Loading />;
   if (m.error) return <ErrorState error={m.error} onRetry={() => m.refetch()} />;
   const cells = m.data!;
@@ -51,7 +53,7 @@ export default function Matrix() {
         </Button>
       </div>
       <PbustLegend />
-      {view === "table" ? (
+      {phone && view !== "table" ? <FieldView cells={cells.filter((c) => !zone || regions.get(c.rid)?.zone === zone)} regions={regions} /> : view === "table" ? (
         <div className="max-h-[70vh] overflow-auto rounded-lg border">
           <DataTable
             cols={[

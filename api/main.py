@@ -184,14 +184,37 @@ def revision(rid: int, valid: str, upto: str | None = None, n: int = 8):
     return records(df.sort_values("init"))
 
 
+SEASONS = {1: "JF", 2: "JF", 3: "MAM", 4: "MAM", 5: "MAM", 6: "JJAS", 7: "JJAS", 8: "JJAS", 9: "JJAS",
+           10: "OND", 11: "OND", 12: "OND"}
+
+
+def contingency_scores(rid: int, t: pd.Timestamp):
+    """IMD-style heavy-rain contingency scores (nwpeval) for this region over the replay store's season.
+    Event = ≥ 64.5 mm/day over ≥ 10 % of the subdivision's IMD land cells (forecast: HRES 0.25°)."""
+    import nwpeval, xarray as xr
+    months = [m for m, s in SEASONS.items() if s == SEASONS[t.month]]
+    df = q(f"""SELECT lead, f_heavy_frac, o_heavy_frac FROM {P()}
+               WHERE rid=? AND year(valid_date)=? AND month(valid_date) IN ({",".join(map(str, months))})
+               AND o_heavy_frac IS NOT NULL AND f_heavy_frac IS NOT NULL""", [rid, t.year])
+    out = []
+    for L, g in df.groupby("lead"):
+        o = xr.DataArray(g.o_heavy_frac.to_numpy(), dims="case"); f = xr.DataArray(g.f_heavy_frac.to_numpy(), dims="case")
+        sc = {k: float(getattr(nwpeval, k)(o, f, 0.10, dim="case")) for k in ("pod", "far", "csi", "ets")}
+        out.append(dict(lead=int(L), n=int(len(g)), n_obs_events=int((g.o_heavy_frac >= 0.10).sum()),
+                        n_fcst_events=int((g.f_heavy_frac >= 0.10).sum()),
+                        **{k: (None if np.isnan(v) else v) for k, v in sc.items()}))
+    return dict(season=f"{SEASONS[t.month]} {t.year}", event="≥ 64.5 mm/day over ≥ 10% of the subdivision", by_lead=out)
+
+
 @app.get("/verify/{rid}")
 def verify(rid: int, init: str):
+    t = ts(init)
     df = q(f"""SELECT lead, valid_date, f_rain, o_rain, abs_err_mm, log_err, thr, bust, p_bust, confidence, hi_bust
-               FROM {P()} WHERE rid=? AND init=? ORDER BY lead""", [rid, ts(init)])
+               FROM {P()} WHERE rid=? AND init=? ORDER BY lead""", [rid, t])
     if df.empty:
         raise HTTPException(404, "not found")
     df["outcome"] = [outcome(p, b) for p, b in zip(df.p_bust, df.bust)]
-    return records(df)
+    return dict(days=records(df), contingency=contingency_scores(rid, t))
 
 
 def outcome(p, b, flag=0.15):
