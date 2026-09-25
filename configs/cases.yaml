@@ -1,0 +1,44 @@
+# Case studies — FROZEN on 2026-09-25, before any model results were seen (spec §9).
+# Do not edit after results exist. `init` is the replay start (00 UTC), chosen a few days before the event peak.
+# `split` = which data split the dates fall in; only `test` cases are out-of-sample evidence.
+cases:
+  - id: kerala-2018
+    name: "Kerala floods, August 2018"
+    init: "2018-08-12T00"
+    regions: [KERALA]
+    split: train
+  - id: amphan-2020
+    name: "Cyclone Amphan, May 2020"
+    init: "2020-05-17T00"
+    regions: [GANGETIC WEST BENGAL, ORISSA]
+    split: train
+  - id: assam-2020-07
+    name: "Assam and Bihar floods, July 2020 (thin-slice month)"
+    init: "2020-07-10T00"
+    regions: [ASSAM & MEGHALAYA, BIHAR]
+    split: train
+  - id: tauktae-2021
+    name: "Cyclone Tauktae, May 2021"
+    init: "2021-05-13T00"
+    regions: [KONKAN & GOA, SAURASHTRA & KUTCH, GUJARAT REGION]
+    split: calib
+  - id: asani-2022
+    name: "Cyclone Asani, May 2022"
+    init: "2022-05-07T00"
+    regions: [COASTAL ANDHRA PRADESH, ORISSA]
+    split: test
+  - id: assam-meghalaya-2022
+    name: "Assam and Meghalaya floods, June 2022"
+    init: "2022-06-12T00"
+    regions: [ASSAM & MEGHALAYA]
+    split: test
+  - id: sitrang-2022
+    name: "Cyclone Sitrang, October 2022"
+    init: "2022-10-20T00"
+    regions: [ASSAM & MEGHALAYA, N M M T, GANGETIC WEST BENGAL]
+    split: test
+  - id: mandous-2022
+    name: "Cyclone Mandous, December 2022"
+    init: "2022-12-06T00"
+    regions: [TAMILNADU & PONDICHERY, RAYALASEEMA]
+    split: test
