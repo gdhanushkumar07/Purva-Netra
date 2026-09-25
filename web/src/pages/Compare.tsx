@@ -3,7 +3,7 @@ import { useMatrix } from "@/api/client";
 import { useInit, useRegionMap, useResolvedTheme, prettyName, fmtInit, pts, ZONE_ORDER } from "@/lib/hooks";
 import { ReliabilityMatrix } from "@/components/matrix/ReliabilityMatrix";
 import { EmptyState, ErrorState, Loading, PbustLegend } from "@/components/common";
-import { DIFF_LABELS, diffColor, diffPalette } from "@/theme/scales";
+import { DIFF_LABELS, diffColor, diffInk, diffPalette } from "@/theme/scales";
 
 export default function Compare() {
   const { t } = useTranslation();
@@ -40,7 +40,7 @@ export default function Compare() {
                     const d = diff.get(`${r.rid}-${i + 1}`) ?? null;
                     return (
                       <td key={i} title={`${prettyName(r.name)} D${i + 1}: ${pts(d)}`} aria-label={`${prettyName(r.name)} day ${i + 1}: ${pts(d)}`}
-                        className="tnum h-6 min-w-10 rounded-[3px] border border-black/10 text-center dark:border-white/10" style={{ background: diffColor(d, theme) }}>
+                        className="tnum h-6 min-w-10 rounded-[3px] border border-black/10 text-center dark:border-white/10" style={{ background: diffColor(d, theme), color: diffInk(d, theme) }}>
                         {d != null && Math.abs(d) >= 0.05 ? Math.round(d * 100) : ""}
                       </td>
                     );

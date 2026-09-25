@@ -13,7 +13,7 @@ const DIV: Record<Theme, string[]> = {
 };
 // Ink that stays legible on each bin (for numbers inside cells)
 const DIV_INK: Record<Theme, string[]> = {
-  light: ["#ffffff", "#0b0b0b", "#0b0b0b", "#0b0b0b", "#0b0b0b", "#0b0b0b", "#ffffff", "#ffffff"],
+  light: ["#ffffff", "#0b0b0b", "#0b0b0b", "#0b0b0b", "#0b0b0b", "#0b0b0b", "#0b0b0b", "#ffffff"],
   dark: ["#0b0b0b", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#0b0b0b", "#0b0b0b"],
 };
 export const pbustBin = (p: number) => PBUST_EDGES.findIndex((e) => p < e);
@@ -33,6 +33,12 @@ const DIFF: Record<Theme, string[]> = {
 export const diffColor = (d: number | null | undefined, t: Theme) =>
   d == null ? "transparent" : DIFF[t][DIFF_EDGES.findIndex((e) => d < e)];
 export const diffPalette = (t: Theme) => DIFF[t];
+const DIFF_INK: Record<Theme, string[]> = {
+  light: ["#ffffff", "#0b0b0b", "#0b0b0b", "#0b0b0b", "#0b0b0b", "#0b0b0b", "#0b0b0b"],
+  dark: ["#0b0b0b", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#0b0b0b"],
+};
+export const diffInk = (d: number | null | undefined, t: Theme) =>
+  d == null ? "inherit" : DIFF_INK[t][DIFF_EDGES.findIndex((e) => d < e)];
 
 // Sequential blue (forecast rain, spread) and the second sequential hue, orange (when shown beside the diverging map).
 export const SEQ_BLUE = ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b"];
