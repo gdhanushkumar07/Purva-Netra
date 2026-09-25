@@ -13,7 +13,7 @@ from .config import load_config
 from .regions import load_weights, region_mean
 from .timing import valid_date
 
-SO = {"token": "anon"}
+SO = {"token": "anon", "requests_timeout": 180}  # a stalled read raises instead of hanging
 LEADS = np.array([np.timedelta64(d, "D") for d in range(1, 11)]).astype("timedelta64[ns]")
 HEAVY = 64.5
 

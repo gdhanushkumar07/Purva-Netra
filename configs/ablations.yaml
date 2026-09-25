@@ -1,0 +1,13 @@
+# Ablations A1–A7. The spec names them but does not define them; these definitions were FROZEN on
+# 2026-09-25 before any held-out result existed. Each is the main model re-fitted with one change.
+ablations:
+  A1: {desc: "Spread only (spread group + lead + season), same LightGBM + isotonic", keep_groups: [spread], keep: [lead, doy_sin, doy_cos]}
+  A2: {desc: "Without analog-memory features", drop_groups: [analogs]}
+  A3: {desc: "Without revision features (rev12, rev24, FFI)", drop_groups: [revision]}
+  A4: {desc: "Without regime / rule-detector features", drop_groups: [regime]}
+  A5: {desc: "Without forecast-state anomalies", drop_groups: [state]}
+  A6: {desc: "Without isotonic calibration (raw LightGBM probability)", no_calibration: true}
+  A7: {desc: "Without region / season identity (rid, doy_sin, doy_cos)", drop_groups: [identity]}
+# Extra baselines reported alongside B0 and B2 (spec defines only B0 and B2 explicitly):
+#   B2iso: B2 logistic + isotonic on the calibration year (a stronger spread baseline)
+#   B3:    analog bust rate (an_bust_rate) + isotonic on the calibration year
