@@ -11,3 +11,6 @@ logs/
 web/node_modules/
 web/dist/
 .DS_Store
+web/test-results/
+web/playwright-report/
+data/feedback/
