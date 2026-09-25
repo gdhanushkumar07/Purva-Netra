@@ -1,0 +1,14 @@
+# Offline demo stack: API on :8000, web-app on :5173. Replay reads precomputed Parquet only.
+services:
+  purva-netra-api:
+    build: .
+    container_name: purva-netra-api
+    volumes:
+      - ./data/processed:/app/data/processed:ro
+      - ./data/feedback:/app/data/feedback
+    ports: ["8000:8000"]
+  purva-netra-web:
+    build: ./web
+    container_name: purva-netra-web
+    ports: ["5173:80"]
+    depends_on: [purva-netra-api]

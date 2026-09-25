@@ -1,0 +1,7 @@
+.venv
+web
+data/raw
+data/interim
+notebooks
+logs
+.git

@@ -92,7 +92,7 @@ export function Method() {
       <section>
         <h2 className="text-lg font-semibold">Data sources &amp; licences</h2>
         <ul className="list-disc space-y-1 pl-5">
-          <li>WeatherBench 2 (Rasp et al. 2024), gs://weatherbench2 — ECMWF IFS HRES/ENS. See the dataset LICENSE file in the bucket; ECMWF data terms apply.</li>
+          <li>WeatherBench 2 (Rasp et al. 2024), gs://weatherbench2 — ECMWF IFS HRES: ECMWF data, CC BY 4.0, attribution to ECMWF (bucket LICENSE). ENS: no LICENSE file in its folder; same ECMWF terms assumed (to verify).</li>
           <li>IMD 0.25° gridded rainfall (Pai et al. 2014), imdpune.gov.in, read with imdlib. IMD terms of use apply.</li>
           <li>IMD subdivision boundaries, mausam.imd.gov.in (sd_boundary.json). Licence not stated; IMD cited as source.</li>
         </ul>

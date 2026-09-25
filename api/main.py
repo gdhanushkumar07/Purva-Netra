@@ -67,9 +67,8 @@ def ts(s: str) -> pd.Timestamp:
 
 
 def regions_meta():
-    import geopandas as gpd
-    g = gpd.read_file(REGIONS)
-    return g.drop(columns="geometry")
+    feats = json.loads(REGIONS.read_text())["features"]
+    return pd.DataFrame([f["properties"] for f in feats]).sort_values("rid").reset_index(drop=True)
 
 
 REG = None
