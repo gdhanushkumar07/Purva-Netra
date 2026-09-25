@@ -1,0 +1,8 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vitest.config.ts:5:41). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+ RUN  v5.0.1 /Users/gdhanushkumar/Documents/Hackathon projects/Purva-netra/purva-netra/web
+ Test Files  2 passed (2)
+      Tests  18 passed (18)
+   Start at  17:44:52
+   Duration  988ms (environment 66%, import 22%, transform 11%, tests 1%)

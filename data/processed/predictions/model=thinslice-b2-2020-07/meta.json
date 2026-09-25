@@ -1,0 +1,31 @@
+{
+ "version": "thinslice-b2-2020-07",
+ "kind": "thin-slice (in-sample, plumbing only)",
+ "threshold_meta": {
+  "years": [
+   2020
+  ],
+  "init_years": [
+   2020
+  ],
+  "q": 0.9,
+  "win": 15
+ },
+ "bundle_meta": {
+  "training_period": "2020-07-01 \u2192 2020-07-20 inits (in-sample placeholder)",
+  "calibration_period": null,
+  "calibration_date": null,
+  "test_result": null,
+  "forecast_model": "ECMWF IFS (WeatherBench 2 archive)",
+  "spec_training_period": "2018\u20132020",
+  "spec_calibration_period": "2021",
+  "note": "Plumbing placeholder: B2 spread baseline fitted on July 2020 only. Not a skill claim."
+ },
+ "bands": [
+  0,
+  0.05,
+  0.15,
+  0.3,
+  1
+ ]
+}

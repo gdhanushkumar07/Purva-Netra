@@ -10,6 +10,7 @@ RUN pip install --no-cache-dir -e . ecmwf-opendata cfgrib eccodes apscheduler bc
 COPY api/ api/
 COPY configs/ configs/
 COPY scripts/ scripts/
+COPY data/ data/
 ENV PN_MODE=replay PYTHONUNBUFFERED=1
 EXPOSE 8000
 CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
