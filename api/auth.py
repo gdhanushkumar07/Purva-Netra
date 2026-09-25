@@ -28,7 +28,10 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 def users_file() -> Path:
-    return Path(os.environ.get("PN_USERS", ROOT / "configs" / "users.yaml"))
+    p = Path(os.environ.get("PN_USERS", ROOT / "configs" / "users.yaml"))
+    if not p.exists() and (ROOT / "configs" / "users.example.yaml").exists():
+        return ROOT / "configs" / "users.example.yaml"
+    return p
 
 
 def load_users() -> dict:
