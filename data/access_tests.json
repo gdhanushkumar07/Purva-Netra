@@ -1,0 +1,155 @@
+{
+ "T1": {
+  "ok": true,
+  "shape": [
+   161,
+   201
+  ],
+  "open_s": 10.0,
+  "total_s": 13.8,
+  "units": null,
+  "max_value": 0.53948974609375,
+  "mean_value": 0.006227322854101658,
+  "chunks": [
+   1,
+   1,
+   721,
+   1440
+  ],
+  "dims": [
+   "time",
+   "prediction_timedelta",
+   "latitude",
+   "longitude"
+  ],
+  "n_time": 5134,
+  "leads": [
+   "0 nanoseconds",
+   "21600000000000 nanoseconds",
+   "43200000000000 nanoseconds",
+   "..."
+  ],
+  "vars": [
+   "10m_u_component_of_wind",
+   "10m_v_component_of_wind",
+   "10m_wind_speed",
+   "2m_temperature",
+   "geopotential",
+   "mean_sea_level_pressure",
+   "specific_humidity",
+   "surface_pressure",
+   "temperature",
+   "total_precipitation",
+   "total_precipitation_24hr",
+   "total_precipitation_6hr",
+   "u_component_of_wind",
+   "v_component_of_wind",
+   "vertical_velocity",
+   "wind_speed"
+  ]
+ },
+ "T2": {
+  "ok": true,
+  "sizes": {
+   "number": 50,
+   "longitude": 33,
+   "latitude": 27
+  },
+  "total_s": 35.9,
+  "units": null,
+  "chunks": [
+   1,
+   50,
+   8,
+   240,
+   121
+  ],
+  "dims": [
+   "time",
+   "number",
+   "prediction_timedelta",
+   "longitude",
+   "latitude"
+  ],
+  "vars": [
+   "10m_u_component_of_wind",
+   "10m_v_component_of_wind",
+   "10m_wind_speed",
+   "2m_temperature",
+   "geopotential",
+   "mean_sea_level_pressure",
+   "relative_humidity",
+   "specific_humidity",
+   "temperature",
+   "total_precipitation",
+   "total_precipitation_24hr",
+   "total_precipitation_6hr",
+   "u_component_of_wind",
+   "v_component_of_wind",
+   "wind_speed"
+  ],
+  "time_range": [
+   "2018-01-01T00:00:00.000000000",
+   "2022-12-31T12:00:00.000000000"
+  ],
+  "n_time": 3652
+ },
+ "T3": {
+  "ok": true,
+  "sizes": {
+   "time": 366,
+   "lat": 129,
+   "lon": 135
+  },
+  "download_s": 0.4,
+  "lat": [
+   6.5,
+   38.5
+  ],
+  "lon": [
+   66.5,
+   100.0
+  ],
+  "land_cells": 4964,
+  "jul15_india_mean_mm": 8.446549809457528
+ },
+ "T4": {
+  "imd": {
+   "ok": true,
+   "bytes": 239850,
+   "n": 36,
+   "crs": "EPSG:4326",
+   "cols": [
+    "OBJECTID_1",
+    "region_cod",
+    "subdivisio",
+    "STATE",
+    "Area",
+    "geometry"
+   ],
+   "bounds": [
+    -796555.47,
+    764107.03,
+    2128753.72,
+    4116495.93
+   ],
+   "s": 1.1
+  },
+  "gist": {
+   "ok": false,
+   "error": "DataSourceError(\"'data/raw/sd_boundary_gist.json' not recognized as being in a supported file format.; It might help to specify the correct driver explicitly by prefixing the file path with '<DRIVER>:', e.g. 'CSV:path'.\")"
+  }
+ },
+ "T5": {
+  "ok": null,
+  "note": "Phase 2 only; endpoint reachable (HTTP 200); retrieval needs ECMWF account - not attempted"
+ },
+ "T6": {
+  "ok": true,
+  "hres_s_per_init_10leads": 8.31,
+  "ens_s_per_init_10leads": 105.21,
+  "hres_MB": 1.29,
+  "ens_MB": 1.78,
+  "est_hours_2018_2022_serial": 115.1
+ }
+}
