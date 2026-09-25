@@ -19,6 +19,7 @@ export default function Matrix() {
   const view = v.get("view") ?? "grid";
   const zone = v.get("zone");
   const onlyLow = v.get("low") === "1";
+  const onlyHeavy = v.get("heavy") === "1";
   const phone = useMediaQuery("(max-width: 599px)");
   if (m.isLoading || !init) return <Loading />;
   if (m.error) return <ErrorState error={m.error} onRetry={() => m.refetch()} />;
@@ -47,6 +48,7 @@ export default function Matrix() {
           </select>
         </label>
         <label className="flex items-center gap-2"><Switch checked={onlyLow} onCheckedChange={(c) => v.set({ low: c ? 1 : undefined })} />{t("matrix.only_low")}</label>
+        <label className="flex items-center gap-2"><Switch checked={onlyHeavy} onCheckedChange={(c) => v.set({ heavy: c ? 1 : undefined })} />▲ heavy-rain risk only</label>
         <label className="flex items-center gap-2"><Switch checked={s.showNumbers} onCheckedChange={(c) => s.set({ showNumbers: c })} />{t("common.show_numbers")}</label>
         <Button size="sm" variant="outline" aria-pressed={view === "table"} onClick={() => v.set({ view: view === "table" ? undefined : "table" })}>
           {view === "table" ? t("common.chart_view") : t("common.table_view")}
@@ -70,7 +72,7 @@ export default function Matrix() {
           />
         </div>
       ) : (
-        <ReliabilityMatrix cells={cells} regions={regions} sort={sort} zone={zone} onlyLow={onlyLow} />
+        <ReliabilityMatrix cells={onlyHeavy ? cells.filter((c) => cells.some((x) => x.rid === c.rid && x.hi_risk)) : cells} regions={regions} sort={sort} zone={zone} onlyLow={onlyLow} />
       )}
     </div>
   );

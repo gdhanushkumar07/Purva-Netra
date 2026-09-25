@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "sonner";
 import { Shell } from "@/components/shell/Shell";
 import { Loading } from "@/components/common";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
@@ -17,6 +18,8 @@ const Region = lazy(() => import("@/pages/Region"));
 const Replay = lazy(() => import("@/pages/Replay"));
 const Compare = lazy(() => import("@/pages/Compare"));
 const Ledger = lazy(() => import("@/pages/Ledger"));
+const Ops = lazy(() => import("@/pages/Ops"));
+const Login = lazy(() => import("@/pages/Login"));
 
 const qc = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
 
@@ -63,10 +66,13 @@ export default function App() {
                 <Route path="/watchlist" element={<Watchlist />} />
                 <Route path="/method" element={<Method />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/ops" element={<Ops />} />
+                <Route path="/login" element={<Login />} />
                 <Route path="*" element={<Navigate to="/brief" replace />} />
               </Routes>
             </Suspense></Screens>
           </Shell>
+          <Toaster position="bottom-right" theme="system" closeButton richColors={false} />
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

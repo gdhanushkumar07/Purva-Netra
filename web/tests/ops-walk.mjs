@@ -1,0 +1,18 @@
+import { chromium } from "@playwright/test";
+const out = process.argv[2];
+const b = await chromium.launch({ channel: "chrome" });
+const ctx = await b.newContext({ viewport: { width: 1440, height: 1000 }, colorScheme: "dark" });
+const p = await ctx.newPage();
+p.on("pageerror", (e) => console.log("pageerror:", e.message));
+await p.goto("http://localhost:5174/login?next=/ops");
+await p.getByTestId("login-user").fill("operator"); await p.getByTestId("login-pass").fill("change-me-operator");
+await p.getByTestId("login-submit").click();
+await p.waitForURL(/\/ops/); await p.waitForTimeout(1500);
+await p.screenshot({ path: `${out}/ops-before.png` });
+await p.getByTestId("btn-run-latest").click(); await p.getByTestId("confirm-run").click();
+await p.waitForTimeout(1500); await p.screenshot({ path: `${out}/ops-running.png` });
+await p.keyboard.press("Escape"); await p.waitForTimeout(25000);
+await p.reload(); await p.waitForTimeout(2000);
+await p.screenshot({ path: `${out}/ops-after.png`, fullPage: true });
+console.log("stage statuses:", await p.locator("[data-testid^=stage-]").evaluateAll((els) => els.map((e) => e.getAttribute("data-status"))));
+await b.close();

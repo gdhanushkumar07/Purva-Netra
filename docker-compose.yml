@@ -1,14 +1,36 @@
-# Offline demo stack: API on :8000, web-app on :5173. Replay reads precomputed Parquet only.
+# PURVA-NETRA stack. Build with PN_BUILD=$(git rev-parse --short HEAD) so API and web report the same version.
+#  Offline SIH demo:   NRT_ENABLED=false PN_MODE=replay docker compose up
+#                     Operational NRT:     PN_MODE=nrt NRT_ENABLED=true docker compose up
 services:
   purva-netra-api:
-    build: .
+    build: { context: ., args: { PN_BUILD: "${PN_BUILD:-dev}" } }
     container_name: purva-netra-api
+    environment:
+      PN_MODE: ${PN_MODE:-replay}
+      NRT_ENABLED: ${NRT_ENABLED:-false}
+      PN_UPSTREAM: ${PN_UPSTREAM:-ecmwf}
+      PN_COOKIE_SECURE: ${PN_COOKIE_SECURE:-true}
+      PN_SECRET: ${PN_SECRET:-}
+      PN_USERS: /app/configs/users.yaml
     volumes:
-      - ./data/processed:/app/data/processed:ro
-      - ./data/feedback:/app/data/feedback
+      - ./data:/app/data            # replay store (read), ops.db + NRT store (read/write)
+      - ./models:/app/models:ro
+      - ./configs/users.yaml:/app/configs/users.yaml:ro
     ports: ["8000:8000"]
+  purva-netra-worker:
+    build: { context: ., args: { PN_BUILD: "${PN_BUILD:-dev}" } }
+    container_name: purva-netra-worker
+    command: python -m purva_netra.worker
+    environment:
+      NRT_ENABLED: ${NRT_ENABLED:-false}
+      PN_UPSTREAM: ${PN_UPSTREAM:-ecmwf}
+      PN_ECMWF_SOURCE: ${PN_ECMWF_SOURCE:-aws}
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models:ro
+    depends_on: [purva-netra-api]
   purva-netra-web:
-    build: ./web
+    build: { context: ./web, args: { PN_BUILD: "${PN_BUILD:-dev}" } }
     container_name: purva-netra-web
     ports: ["5173:80"]
     depends_on: [purva-netra-api]

@@ -70,9 +70,11 @@ def nrt_enabled() -> bool:
 class EcmwfUpstream:
     name = "ecmwf-opendata"
 
+    # ECMWF limits its portal to 500 simultaneous connections (HTTP 429) and publishes the same open
+    # data on AWS/Azure/Google mirrors; PN_ECMWF_SOURCE picks one (default: aws).
     def _client(self, retries=1, wait=5):
         from ecmwf.opendata import Client
-        return Client(source="ecmwf", maximum_retries=retries, retry_after=wait)
+        return Client(source=os.environ.get("PN_ECMWF_SOURCE", "aws"), maximum_retries=retries, retry_after=wait)
 
     def latest(self) -> pd.Timestamp:
         try:
@@ -82,8 +84,9 @@ class EcmwfUpstream:
         return pd.Timestamp(t)
 
     def fetch(self, init, out: Path, log) -> Path:
-        """Download HRES (oper fc) and ENS (cf+pf) accumulated tp for steps 24…240, crop each step to
-        the IMD 0.25° land grid immediately (global GRIB deleted), convert to 24-h totals in mm."""
+        """Download HRES (oper fc) and the 50 perturbed ENS members (pf) accumulated tp for steps 24…240,
+        crop each step to the IMD 0.25° land grid immediately (global GRIB deleted), convert to 24-h mm.
+        Open data has no control member (cf) for tp — and training (WB2 ifs_ens) also uses the 50 pf members."""
         from .regions import load_weights
         w = load_weights()["hres"]
         lat, lon = w.lat.values, w.lon.values
@@ -103,9 +106,6 @@ class EcmwfUpstream:
             c.retrieve(stream="oper", type="fc", step=LEAD_STEPS, target=str(p), **base)
             hres = crop(p)                                       # (step, lat, lon) accumulated m
             log("INFO", f"HRES tp: {hres.sizes['step']} steps")
-            p = tmp / "cf.grib2"
-            c.retrieve(stream="enfo", type="cf", step=LEAD_STEPS, target=str(p), **base)
-            cf = crop(p).expand_dims(number=[0])
             pf = []
             for s in LEAD_STEPS:
                 p = tmp / f"pf_{s}.grib2"
@@ -117,7 +117,7 @@ class EcmwfUpstream:
         except Exception as e:
             raise StageError(f"fetch failed: {type(e).__name__}: {e}") from e
         pf = xr.concat(pf, dim="step")                            # (step, number, lat, lon)
-        ens = xr.concat([cf.transpose("step", "number", ...), pf.transpose("step", "number", ...)], dim="number")
+        ens = pf.transpose("step", "number", ...)
         return _write_fields(hres, ens, out)
 
 
@@ -291,7 +291,7 @@ def st_validate(c: Ctx):
     problems = []
     if sorted(h.lead.values.tolist()) != list(range(1, 11)):
         problems.append(f"HRES leads {h.lead.values.tolist()}")
-    if int(e.sizes["number"]) < 50:
+    if int(e.sizes["number"]) < 50:            # 50 perturbed members (as in training)
         problems.append(f"ENS members {int(e.sizes['number'])} < 50")
     if int(h.isnull().sum()) or int(e.isnull().sum()):
         problems.append("NaN in cropped fields")
@@ -474,6 +474,7 @@ def run_job(jid: int):
             set_stage(jid, n, status="reused", message="output reused from earlier run")
         if start > 0:
             db.execute("UPDATE cycles SET status='processing' WHERE init=?", (str(pd.Timestamp(c.init)),))
+            db.execute("UPDATE jobs SET source=? WHERE id=?", (c.up.name, jid))      # resumed jobs skip discover
         for n in names[start:]:
             _run_stage(c, n)
         return _finish(jid, t0, "done", None)

@@ -13,7 +13,8 @@
     "ledger": "Trust Ledger",
     "watchlist": "Watchlist",
     "method": "Method",
-    "settings": "Settings"
+    "settings": "Settings",
+    "ops": "Operations"
   },
   "shell": {
     "cycle": "Cycle",
@@ -71,7 +72,8 @@
     "mm": "mm",
     "all": "All",
     "sort": "Sort",
-    "filter": "Filter"
+    "filter": "Filter",
+    "not_available_model": "Not available in this model version"
   },
   "brief": {
     "title": "Today at a glance",
@@ -138,7 +140,26 @@
     "disagree": "Disagree",
     "note": "Note (optional)",
     "saved": "Saved to feedback log",
-    "history_na": "Needs the full 2018–2022 archive; not available in this build."
+    "history_na": "Needs the full 2018–2022 archive; not available in this build.",
+    "dna_title": "Forecast DNA · bust anatomy",
+    "dna_help": "Bar length = summed SHAP contribution of each evidence group for this region and day. Right raises bust risk, left lowers it.",
+    "dna_units": "contribution to bust risk (log-odds, SHAP)",
+    "dna_no_sentence": "No template sentence: this group did not pass its fixed reason threshold.",
+    "dna_other": "Other model terms (not evidence groups)",
+    "raises": "raises risk",
+    "lowers": "lowers risk",
+    "evo_q1": "What changed? Forecast rain per cycle",
+    "evo_q2": "How much did P(bust) change?",
+    "evo_q3": "Did spread increase?",
+    "evo_q4": "Did the model change its mind?",
+    "largest_rev": "Largest revision between cycles",
+    "sig_change": "Significant change",
+    "sig_yes": "✓ Yes — a revision exceeded the fixed threshold (0.4 log-units)",
+    "sig_no": "✗ No revision above the fixed threshold (0.4 log-units)",
+    "evo_summary": "Since the previous cycle, forecast rain for {{date}} changed from {{a}} to {{b}} mm ({{d}}); P(bust) moved {{dp}}; spread is {{s}}× normal (was {{s0}}×).",
+    "evo_single": "Only one cycle so far for {{date}} — nothing to compare yet.",
+    "vs_base": "vs 10% base rate",
+    "change_prev": "vs previous cycle"
   },
   "outcome": {
     "hit": "✓ Bust flagged",

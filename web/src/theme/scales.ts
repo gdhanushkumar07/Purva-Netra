@@ -76,3 +76,57 @@ export const chartInk = (t: Theme) =>
   t === "dark"
     ? { text: "#ffffff", text2: "#c3c2b7", muted: "#b5b4aa", grid: "#2c2c2a", axis: "#383835", surface: "#1a1a19" }
     : { text: "#0b0b0b", text2: "#52514e", muted: "#5c5b57", grid: "#e1e0d9", axis: "#c3c2b7", surface: "#fcfcfb" };
+
+// Novelty (sequential violet; validated light + dark — near-zero steps recede by design).
+export const SEQ_VIOLET = ["#e4e0f7", "#c7bff0", "#a89de6", "#8a7bdc", "#6c5acd", "#5445b0", "#3d318a"];
+export const SEQ_VIOLET_DARK = ["#2e2566", "#3d318a", "#5445b0", "#6c5acd", "#8a7bdc", "#a89de6", "#c7bff0"];
+export const NOVELTY_EDGES = [0.5, 1, 1.5, 2, 2.5, 3, 1e9];
+export const NOVELTY_LABELS = ["< 0.5", "0.5–1", "1–1.5", "1.5–2", "2–2.5", "2.5–3", "≥ 3"];
+
+// Revision: change in forecast rain vs the previous cycle, same valid date (mm). Diverging on 0:
+// drier = orange arm, wetter = blue arm, grey neutral (validated per arm, light + dark; ends CVD-distinct).
+export const REV_EDGES = [-20, -10, -3, 3, 10, 20, 1e9];
+export const REV_LABELS = ["≤ −20", "−20…−10", "−10…−3", "±3", "+3…+10", "+10…+20", "≥ +20 mm"];
+const REV: Record<Theme, string[]> = {
+  light: ["#a03e16", "#e0763f", "#f7c3a8", "#f0efec", "#b7d3f6", "#5598e7", "#1c5cab"],
+  dark: ["#f29470", "#c9501f", "#8a3a15", "#383835", "#1f4f8f", "#2f6fc0", "#6da7ec"],
+};
+export const revPalette = (t: Theme) => REV[t];
+export const revColor = (d: number | null | undefined, t: Theme) =>
+  d == null || Number.isNaN(d) ? "transparent" : REV[t][REV_EDGES.findIndex((e) => d < e)];
+
+// ---- Trust Lens: one layer at a time, each with its own legend, units and one-line meaning.
+export type Lens = "pbust" | "rain" | "spread" | "novelty" | "revision" | "regime";
+export const LENSES: { id: Lens; label: string; units: string; meaning: string }[] = [
+  { id: "pbust", label: "P(Bust)", units: "%", meaning: "Chance this forecast busts; grey ≈ the usual 10%, red = less trustworthy, blue = more." },
+  { id: "rain", label: "Forecast Rain", units: "mm / 24 h", meaning: "HRES 24-hour rainfall, land-only subdivision mean." },
+  { id: "spread", label: "Ensemble Spread", units: "× normal", meaning: "How much the 50 members disagree, relative to normal for this region, lead and month." },
+  { id: "novelty", label: "Novelty", units: "× typical analog distance", meaning: "How unlike past forecasts today's pattern is (needs the analog memory)." },
+  { id: "revision", label: "Revision", units: "mm vs previous cycle", meaning: "Change in forecast rain for the same day since the cycle 12 h earlier; orange drier, blue wetter." },
+  { id: "regime", label: "Regime", units: "category", meaning: "Weather-regime outline." },
+];
+
+// ---- Forecast DNA: evidence groups in fixed order, plain-language labels.
+export const EVIDENCE_ORDER = ["spread", "revision", "analogs", "novelty", "regime", "state"] as const;
+export const EVIDENCE_LABEL: Record<(typeof EVIDENCE_ORDER)[number], string> = {
+  spread: "Ensemble spread", revision: "Revision", analogs: "Analogs", novelty: "Novelty", regime: "Regime", state: "Forecast state",
+};
+export interface DnaBar { group: string; label: string; available: boolean; value: number | null; side: "raises" | "lowers" | "none";
+  widthPct: number; reason: string | null }
+/** Map SHAP group contributions to signed bars: right = raises bust risk, left = lowers it. Scale is
+ *  shared across groups (max |value| → 100 %). Unavailable groups keep a greyed row with the reason. */
+export function dnaBars(groups: { group: string; available: boolean; value: number | null; reason: string | null }[]): DnaBar[] {
+  const byG = new Map(groups.map((g) => [g.group, g]));
+  const max = Math.max(1e-9, ...groups.filter((g) => g.available && g.value != null).map((g) => Math.abs(g.value!)));
+  return EVIDENCE_ORDER.map((k) => {
+    const g = byG.get(k);
+    const ok = !!g && g.available && g.value != null;
+    const v = ok ? g!.value! : null;
+    return {
+      group: k, label: EVIDENCE_LABEL[k], available: ok, value: v,
+      side: !ok || v === 0 ? "none" : v! > 0 ? "raises" : "lowers",
+      widthPct: ok ? (Math.abs(v!) / max) * 100 : 0,
+      reason: ok ? null : g?.reason ?? "Not available in this model version",
+    };
+  });
+}

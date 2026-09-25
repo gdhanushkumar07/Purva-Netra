@@ -17,3 +17,5 @@ data/feedback/
 configs/users.yaml
 data/ops/
 data/nrt/
+data/demo-nrt/
+data/demo-nrt-offline/

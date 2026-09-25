@@ -149,3 +149,22 @@
     body { background: #fff; color: #000; }
   }
 }
+
+/* ---- Console panel system (8-px grid; hairline dividers instead of nested cards) ---- */
+@layer components {
+  .panel { background: var(--card); border: 1px solid var(--border); border-radius: 6px; }
+  .panel > .panel-sec + .panel-sec { border-top: 1px solid var(--border); }
+  .panel-sec { padding: 8px 16px; }
+  .panel-title { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted-foreground); }
+  .kpi { font-size: 32px; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .kpi-sm { font-size: 20px; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
+  .hair-b { border-bottom: 1px solid var(--border); }
+  .hair-r { border-right: 1px solid var(--border); }
+  .pulse-dot { position: relative; }
+  .pulse-dot::after { content: ""; position: absolute; inset: -3px; border-radius: 9999px; border: 2px solid currentColor;
+    animation: pn-pulse 1.8s ease-out infinite; }
+}
+@keyframes pn-pulse { 0% { opacity: .7; transform: scale(.6); } 100% { opacity: 0; transform: scale(1.6); } }
+@media (prefers-reduced-motion: reduce) { .pulse-dot::after { animation: none; opacity: 0; } }
+:root { --dna-up: #d4493d; --dna-down: #256abf; }
+.dark { --dna-up: #dc5f51; --dna-down: #5b97e3; }

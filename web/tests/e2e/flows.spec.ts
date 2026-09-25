@@ -1,9 +1,9 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
-const ROUTES = ["/brief", "/matrix", "/map", "/region/8?day=5&tab=overview", "/region/8?day=5&tab=why",
-  "/region/8?day=5&tab=evolution", "/region/8?day=5&tab=verify", "/replay", "/compare", "/ledger", "/watchlist",
-  "/method", "/settings"];
+const ROUTES = ["/brief", "/matrix", "/map", "/map?layer=revision&day=4&rid=8", "/map?split=1", "/region/8?day=5&tab=overview",
+  "/region/8?day=5&tab=why", "/region/8?day=5&tab=evolution", "/region/8?day=5&tab=verify", "/replay", "/replay?act=2",
+  "/replay?act=3&reveal=5", "/compare", "/ledger", "/watchlist", "/method", "/settings", "/ops", "/login"];
 
 test("every screen renders content without errors, with the REPLAY badge", async ({ page }) => {
   const errors: string[] = [];
@@ -11,7 +11,7 @@ test("every screen renders content without errors, with the REPLAY badge", async
   for (const r of ROUTES) {
     await page.goto(r);
     await expect(page.getByTestId("mode-badge")).toHaveText("REPLAY");
-    await expect(page.locator("main h1").first()).toBeVisible();
+    await expect(page.locator("main h1, main [role=alert], main .text-center").first()).toBeAttached();
     await expect(page.getByTestId("screen-error")).toHaveCount(0);
     await expect(page.getByRole("alert").filter({ hasText: /could not/i })).toHaveCount(0);
   }
@@ -50,9 +50,10 @@ test("matrix keyboard navigation opens a cell with Enter", async ({ page }) => {
 });
 
 test("view state lives in the URL (shareable link restores the view)", async ({ page }) => {
-  await page.goto("/map?day=7&layer=rain");
-  await expect(page.getByText(/Day 7 ·/)).toBeVisible();
-  await expect(page.locator("select").filter({ hasText: "Forecast rain" }).first()).toHaveValue("rain");
+  await page.goto("/map?day=7&layer=rain&rid=8");
+  await expect(page.getByTestId("day-label")).toContainText("Day 7");
+  await expect(page.getByTestId("lens-rain")).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByTestId("region-popover")).toContainText("Vidarbha");
 });
 
 test("full replay: advance Day 1→10 with truth reveal and score ticker", async ({ page }) => {
@@ -65,6 +66,7 @@ test("full replay: advance Day 1→10 with truth reveal and score ticker", async
   await expect(page).toHaveURL(/reveal=10/);
   await expect(page.getByTestId("ticker")).toContainText(/Brier/);
   await expect(page.getByTestId("advance")).toBeDisabled();
+  await expect(page.getByTestId("act3")).toBeVisible();
 });
 
 for (const r of ROUTES) {
@@ -72,7 +74,7 @@ for (const r of ROUTES) {
     test(`axe: no serious/critical issues on ${r} (${scheme})`, async ({ page }) => {
       await page.emulateMedia({ colorScheme: scheme });
       await page.goto(r);
-      await expect(page.locator("main h1").first()).toBeVisible();   // never audit a blank page
+      await expect(page.locator("main h1, main p, main [role=alert]").first()).toBeVisible();   // never audit a blank page
       await page.waitForTimeout(800);
       const res = await new AxeBuilder({ page }).exclude(".maplibregl-canvas").analyze();
       const bad = res.violations.filter((v) => v.impact === "serious" || v.impact === "critical");

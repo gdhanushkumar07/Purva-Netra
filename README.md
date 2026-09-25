@@ -28,7 +28,8 @@ The build spec is [IMPLEMENTATION.md](IMPLEMENTATION.md).
 | Full archive 2018–2022 | ⛔ **Not extracted.** It needs a cloud VM (see *Why the full archive is not here yet*). |
 | Model, held-out evaluation, gate §9 | Code complete and tested on synthetic data. **No held-out results exist yet.** `make pipeline` refuses to run on an incomplete archive. |
 | Web-app | ✅ all screens. 32/32 Playwright tests pass (every route renders, both demo flows, axe on 13 routes × light/dark), and 7/7 Vitest. |
-| Docker | Files written (`purva-netra-api`, `purva-netra-web`). **Not built or tested: Docker is not installed on the development machine.** |
+| Docker | Files written (`purva-netra-api`, `purva-netra-worker`, `purva-netra-web`). **Not built or tested: Docker is not installed on the development machine.** |
+| NRT + Operations console | ✅ runner, worker, auth, `/ops` API and UI. Tested with the SYNTHETIC mock upstream. The real ECMWF open-data path fetched live HRES data, but ENS downloads were throttled (HTTP 429, S3 503). Inference uses the **placeholder** model. |
 
 ### Why the full archive is not here yet (T6)
 
@@ -103,6 +104,63 @@ Once the archive exists, `make all` writes `data/processed/eval/results.json`, t
 - **Land-only truth.** IMD gridded rain covers land only. A & N Islands and Lakshadweep are not assessed.
 - **Replay only.** Near-real-time is Phase 2 and not built. The UI shows a REPLAY badge on every screen.
 - The rule detectors (depression vorticity threshold, WD trough) use fixed defaults and are **not tuned** on labelled events. Regimes carry neutral names ("Regime A…") until someone reviews their composites. The Hindi strings are a first draft awaiting native-speaker review.
+
+## Operations console (`/ops`)
+
+An operations panel for the near-real-time (NRT) pipeline. It is **not** needed for the offline replay demo.
+
+### Roles and users
+| Role | Can |
+| --- | --- |
+| viewer (default; also anonymous) | Use every forecast screen. **No** access to `/ops` (the server answers 401/403). |
+| operator | Open `/ops`; run the latest cycle, retry a failed job, refresh predictions, read logs. |
+| admin | Everything an operator can, plus the audit log (`GET /ops/audit`) and the user list (`GET /ops/users`). |
+
+Roles are enforced **on the server** for every `/ops` route. The frontend only hides the "Operations" nav item.
+
+**Add a user.** There is no self-signup:
+```bash
+.venv/bin/python api/auth.py 'a-strong-password'      # prints a bcrypt hash
+cp configs/users.example.yaml configs/users.yaml        # git-ignored; edit usernames, roles, hashes
+```
+Sign in at `/login`. The session is a short-lived JWT in an httpOnly, `Secure`, `SameSite=Strict` cookie (8 h, `PN_SESSION_TTL_S`). Login is rate-limited to 5 failures per 5 min per user+IP, and every login, logout and control action is written to the audit table. SSO/OIDC hook: `PN_AUTH_PROVIDER=oidc` + `api/auth.py:oidc_identity()`. It is not implemented.
+
+### Enabling NRT
+```bash
+PN_MODE=nrt NRT_ENABLED=true docker compose up        # api + purva-netra-worker + web
+# or locally:
+PN_MODE=nrt .venv/bin/uvicorn api.main:app --port 8000 &   NRT_ENABLED=true .venv/bin/python -m purva_netra.worker
+```
+- The worker polls ECMWF Open Data (`Client().latest()`) every 30 min (`PN_POLL_MIN`) and runs the pipeline for a new 00/12 UTC cycle. It runs `verify` daily at 06:30 UTC, sends a heartbeat every 60 s and measures disk use every 10 min.
+- `PN_ECMWF_SOURCE` picks the mirror (default `aws`; also `azure`, `google`, `ecmwf`). ECMWF limits its own portal to 500 simultaneous connections.
+- `NRT_ENABLED=false` keeps everything up, but the worker runs nothing and the controls show "NRT disabled". This is the offline demo setting.
+- `PN_UPSTREAM=mock` uses a **SYNTHETIC** upstream, for tests and the offline demo only. Its cycles are labelled `MOCK UPSTREAM` everywhere. `scripts/nrt_demo_stack.sh` starts an isolated NRT stack with it.
+- The ops DB is created or migrated with `python scripts/init_ops_db.py`, and the schema is also created lazily on first use.
+
+**Pipeline stages:** discover → fetch → validate → extract → features → inference → explain → publish, plus `verify` the next day.
+- Runs are idempotent per init: a published cycle is a no-op unless forced.
+- Only one run at a time: a file lock plus a DB check, so a second request gets **409** with the running job id.
+- Publishing is atomic: the file is written to a temp name, validated (360 rows, no NaN P(bust) for the 34 assessed regions), then `os.replace` swaps it in, and the `CURRENT` pointer is updated last.
+- A failure records the stage, the error and the traceback, and marks later stages skipped.
+- A retry resumes from the failed stage and reuses earlier outputs.
+
+### What the statuses mean
+| Status | Meaning |
+| --- | --- |
+| ✓ OK / Done / Fresh | The check **ran** and passed. Every item shows "last checked". |
+| ▲ Warning / Stale | Data age 18–36 h, PSI > 0.2, or a frontend version mismatch. |
+| ◆ Down / Old / ✗ Failed | Data age > 36 h, a failed stage, or the upstream is unreachable. |
+| ? Unknown / Not monitored | The check has never run, or can't be measured. **Never shown as success.** |
+| ○ Insufficient data | For example calibration drift before 200 verified NRT predictions ("n = X / 200"). |
+| – Skipped / Disabled / Not in this model version | Not applicable. |
+
+**Overall** is Healthy, Degraded or Down, with the reasons listed. In REPLAY mode the page shows the replay store's status, and every NRT control is disabled with the reason.
+
+### Runbook
+- **Upstream late or unreachable** ("Upstream unreachable", data stale): check `upstream latest … last checked`. ECMWF usually publishes 00 UTC ENS about 7–8 h later. For HTTP 429 or S3 "Slow Down", switch `PN_ECMWF_SOURCE` to another mirror and press **Retry failed ingestion**, which resumes from `fetch`. The app keeps serving the last published cycle, with the amber or red age banner.
+- **IMD truth missing** ("Predictions waiting for truth" keeps growing): IMD real-time gridded rain usually appears the next morning IST. `verify` retries daily, or run it with `POST /ops/verify`. Nothing is marked hit or miss without truth.
+- **Drift warning** (PSI > 0.2 or Brier outside the 2022 CI): the NRT inputs differ from training, for example a new IFS cycle or a season the model never saw. Don't hide it: note it in the bulletin, and refit the isotonic calibrator on recent verified months (spec §14) before trusting the probabilities. Then **Refresh predictions** re-runs inference, explain and publish for a cycle without fetching again.
+- **Job stuck "running"**: a job whose process has died is closed as failed automatically on the next status check ("process ended without finishing").
 
 ## Web-app (spec §13)
 

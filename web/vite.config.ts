@@ -3,9 +3,13 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
+import { execSync } from "node:child_process";
+
+const APP_VERSION = process.env.PN_BUILD ?? (() => { try { return execSync("git rev-parse --short HEAD").toString().trim(); } catch { return "dev"; } })();
 
 // API base: dev proxies /api → FastAPI on :8000; the Docker nginx image does the same.
 export default defineConfig({
+  define: { __APP_VERSION__: JSON.stringify(APP_VERSION) },
   plugins: [
     react(),
     tailwindcss(),
@@ -42,6 +46,6 @@ export default defineConfig({
   ],
   worker: { format: "es" },
   resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
-  server: { port: 5173, proxy: { "/api": { target: "http://localhost:8000", rewrite: (p) => p.replace(/^\/api/, "") } } },
-  preview: { port: 5173, proxy: { "/api": { target: "http://localhost:8000", rewrite: (p) => p.replace(/^\/api/, "") } } },
+  server: { port: 5173, proxy: { "/api": { target: process.env.PN_API ?? "http://localhost:8000", rewrite: (p) => p.replace(/^\/api/, "") } } },
+  preview: { port: 5173, proxy: { "/api": { target: process.env.PN_API ?? "http://localhost:8000", rewrite: (p) => p.replace(/^\/api/, "") } } },
 });
