@@ -1,0 +1,14 @@
+# Copy to configs/users.yaml (git-ignored) and replace the hashes:
+#   .venv/bin/python api/auth.py '<password>'   → prints a bcrypt hash
+# Roles: viewer (default; anonymous users are viewers) · operator (Ops console + controls) · admin (+ audit, users)
+# No self-signup. For SSO/OIDC see api/auth.py (PN_AUTH_PROVIDER=oidc hook).
+users:
+  - username: operator
+    role: operator
+    password_hash: "$2b$12$VT0aRsONme9HIxdM43ArX.UiX1OzYeIQ0EaRgvlinNqwJfWkNQmou"     # example password: change-me-operator
+  - username: admin
+    role: admin
+    password_hash: "$2b$12$va7nQ2Y57SrryQPhwzaVXueVqWEUSzYkXLOvaVZJxuXlAgRh7CVwK"        # example password: change-me-admin
+  - username: viewer
+    role: viewer
+    password_hash: "$2b$12$VT0aRsONme9HIxdM43ArX.UiX1OzYeIQ0EaRgvlinNqwJfWkNQmou"

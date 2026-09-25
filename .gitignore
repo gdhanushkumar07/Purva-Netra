@@ -14,3 +14,6 @@ web/dist/
 web/test-results/
 web/playwright-report/
 data/feedback/
+configs/users.yaml
+data/ops/
+data/nrt/

@@ -10,7 +10,7 @@ OUT_COLS = ["init", "rid", "lead", "valid_date", "p_bust", "confidence", "p_b0",
             "err_q50", "err_q90", "obs_lo_mm", "obs_hi_mm", "hi_risk", "hi_type_fcst", "novelty",
             "spread_anom", "rev12", "ffi4", "regime", "f_rain", "ens_mean", "ens_q10", "ens_q90",
             "o_rain", "bust", "hi_bust", "log_err", "thr", "abs_err_mm", "f_heavy_frac", "o_heavy_frac",
-            "reasons_en", "reasons_hi", "reason_groups", "reason_source", "contrib", "an_cases"]
+            "reasons_en", "reasons_hi", "reason_groups", "reason_source", "contrib", "an_cases", "group_contrib"]
 
 
 def bands(p, cfg=None):
@@ -31,7 +31,8 @@ def obs_range(f_rain, q):
     return np.maximum((1 + f_rain) * np.exp(-q) - 1, 0), (1 + f_rain) * np.exp(q) - 1
 
 
-def finalize(rows: pd.DataFrame, p: np.ndarray, contribs, source: str, analogs=None, regime_sent=None):
+def finalize(rows: pd.DataFrame, p: np.ndarray, contribs, source: str, analogs=None, regime_sent=None, group_contrib=None):
+    """group_contrib: per-row SHAP sums by evidence group (bundle.group_contributions), or None."""
     rows = rows.copy()
     rows["p_bust"] = p
     rows["confidence"] = bands(rows.p_bust)
@@ -53,6 +54,7 @@ def finalize(rows: pd.DataFrame, p: np.ndarray, contribs, source: str, analogs=N
         en.append(s_en); hi.append(s_hi); groups.append(gs); cj.append(json.dumps(c))
     rows["reasons_en"], rows["reasons_hi"], rows["reason_groups"], rows["contrib"] = en, hi, groups, cj
     rows["reason_source"] = source
+    rows["group_contrib"] = [json.dumps(g) if g else None for g in group_contrib] if group_contrib is not None else None
     if "an_cases" not in rows:
         rows["an_cases"] = "[]"
     for c in OUT_COLS:

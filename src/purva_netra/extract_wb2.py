@@ -24,20 +24,14 @@ def open_sources(cfg):
     return hres, ens
 
 
-def extract_init(init, hres, ens, W) -> pd.DataFrame:
-    wh, we = W["hres"], W["ens"]
-    # Deterministic forecast being judged (m → mm), IMD-identical 0.25° grid
-    f = hres["total_precipitation_24hr"].sel(time=init, prediction_timedelta=LEADS)
-    f = f.sel(latitude=wh.lat.values, longitude=wh.lon.values, method="nearest", tolerance=1e-3).load().clip(min=0) * 1000
+def summarise(f, tp, wh, we) -> xr.Dataset:
+    """Region statistics shared by the archive (WB2) and NRT (ECMWF open data) paths.
+    f: HRES 24-h rain (lead, lat, lon) mm; tp: ENS 24-h rain (number, lead, lat, lon) mm."""
     f_rain = region_mean(f, wh)
     f_heavy = region_mean((f >= HEAVY).astype("f4"), wh)
-
-    # Ensemble at 1.5° (m → mm)
-    tp = ens["total_precipitation_24hr"].sel(time=init, prediction_timedelta=LEADS)
-    tp = tp.sel(latitude=we.lat.values, longitude=we.lon.values, method="nearest", tolerance=1e-3).load().clip(min=0) * 1000
     tp_r = region_mean(tp, we)                                  # (number, lead, region)
     heavy_m = region_mean((tp >= HEAVY).astype("f4"), we)       # gridpoint fraction per member
-    stats = xr.Dataset({
+    return xr.Dataset({
         "f_rain": f_rain, "f_heavy_frac": f_heavy,
         "ens_mean": tp_r.mean("number"), "ens_spread": tp_r.std("number"),
         "ens_log_spread": np.log1p(tp_r).std("number"),
@@ -47,13 +41,28 @@ def extract_init(init, hres, ens, W) -> pd.DataFrame:
         "ens_q90": tp_r.quantile(0.9, "number").drop_vars("quantile"),
         "ens_n": tp_r.notnull().sum("number"),
     })
-    df = stats.drop_vars([c for c in stats.coords if c not in ("prediction_timedelta", "region")]) \
-              .to_dataframe().reset_index()
-    df = df.rename(columns={"prediction_timedelta": "lead", "region": "rid"})
-    df["lead"] = (df["lead"] / np.timedelta64(1, "D")).astype(int)
+
+
+def to_rows(stats: xr.Dataset, init, lead_dim: str) -> pd.DataFrame:
+    keep = (lead_dim, "region")
+    df = stats.drop_vars([c for c in stats.coords if c not in keep]).to_dataframe().reset_index()
+    df = df.rename(columns={lead_dim: "lead", "region": "rid"})
+    if np.issubdtype(df["lead"].dtype, np.timedelta64):
+        df["lead"] = (df["lead"] / np.timedelta64(1, "D")).astype(int)
     df.insert(0, "init", pd.Timestamp(init))
     df["valid_date"] = valid_date(df["init"], df["lead"])
     return df
+
+
+def extract_init(init, hres, ens, W) -> pd.DataFrame:
+    wh, we = W["hres"], W["ens"]
+    # Deterministic forecast being judged (m → mm), IMD-identical 0.25° grid
+    f = hres["total_precipitation_24hr"].sel(time=init, prediction_timedelta=LEADS)
+    f = f.sel(latitude=wh.lat.values, longitude=wh.lon.values, method="nearest", tolerance=1e-3).load().clip(min=0) * 1000
+    # Ensemble at 1.5° (m → mm)
+    tp = ens["total_precipitation_24hr"].sel(time=init, prediction_timedelta=LEADS)
+    tp = tp.sel(latitude=we.lat.values, longitude=we.lon.values, method="nearest", tolerance=1e-3).load().clip(min=0) * 1000
+    return to_rows(summarise(f, tp, wh, we), init, "prediction_timedelta")
 
 
 def run(start: str, end: str, out_dir: str | None = None):
