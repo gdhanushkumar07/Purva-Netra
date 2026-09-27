@@ -54,6 +54,8 @@ make all                 # data → labels → features → models → evaluatio
 .venv/bin/uvicorn api.main:app --port 8000
 cd web && npx vite build && npx vite preview --port 5173     # http://localhost:5173
 make e2e                 # Playwright + axe (uses installed Chrome: PW_CHANNEL=chrome)
+#   ports: if :8000 is taken, run the API on another port and preview with PN_API=http://localhost:<port>;
+#   web/tests/e2e/run.sh runs replay + NRT (:8011, PN_NRT_API_PORT) + offline projects
 
 docker compose up --build   # API :8000, web :5173 — offline (untested here, see Status)
 ```

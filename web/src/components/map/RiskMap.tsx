@@ -7,6 +7,7 @@ import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 // MapLibre v6 ships its worker as a separate module; point it at the bundled (offline) copy.
 maplibregl.setWorkerUrl(workerUrl);
 import type { Cell } from "@/api/client";
+import { applyBasemap, type BasemapId } from "./basemaps";
 import {
   pbustColor, seqColor, RAIN_EDGES, SEQ_BLUE, SEQ_BLUE_DARK, SEQ_ORANGE, SEQ_ORANGE_DARK, SPREAD_EDGES, type Theme,
 } from "@/theme/scales";
@@ -15,6 +16,20 @@ export type Layer = "pbust" | "rain" | "spread" | "novelty" | "revision" | "regi
 const GEO = "/geo/imd_subdivisions.geojson";
 let geoCache: GeoJSONSourceSpecification["data"] | null = null;
 const loadGeo = async () => (geoCache ??= await (await fetch(GEO)).json());
+
+/** [minLon, minLat, maxLon, maxLat] of one subdivision (from the already-loaded geometry). */
+function bboxOf(rid: number): [number, number, number, number] | null {
+  const fc = geoCache as { features?: { properties: { rid: number }; geometry: { coordinates: unknown } }[] } | null;
+  const f = fc?.features?.find((x) => x.properties.rid === rid);
+  if (!f) return null;
+  const b = [180, 90, -180, -90];
+  const walk = (a: unknown): void => {
+    if (Array.isArray(a) && typeof a[0] === "number") { b[0] = Math.min(b[0], a[0]); b[1] = Math.min(b[1], a[1] as number); b[2] = Math.max(b[2], a[0]); b[3] = Math.max(b[3], a[1] as number); }
+    else if (Array.isArray(a)) a.forEach(walk);
+  };
+  walk(f.geometry.coordinates);
+  return b as [number, number, number, number];
+}
 
 export function colorFor(c: Cell | undefined, layer: Layer, theme: Theme, orange = false) {
   if (!c || c.p_bust == null) return theme === "dark" ? "#262625" : "#e8e7e1";
@@ -28,10 +43,15 @@ export function colorFor(c: Cell | undefined, layer: Layer, theme: Theme, orange
 /** Choropleth of the 36 subdivisions; no basemap tiles (fully offline). */
 export function RiskMap({
   cells, day, layer, theme, onSelect, selected, orange = false, syncRef, label, interactive = true, colorOf, tipOf,
+  basemap = "minimal", footprintRids, evidenceVisible = true, focusRid, onBasemapError,
 }: {
   cells: Cell[]; day: number; layer: Layer; theme: Theme; onSelect?: (rid: number, point: { x: number; y: number }) => void; selected?: number;
   orange?: boolean; syncRef?: React.MutableRefObject<MLMap[]>; label: string; interactive?: boolean;
   colorOf?: (c: Cell | undefined) => string; tipOf?: (c: Cell | undefined) => string;
+  /** context basemap (never a model input) */ basemap?: BasemapId;
+  /** subdivisions outlined as part of a risk footprint (display grouping) */ footprintRids?: number[];
+  evidenceVisible?: boolean; /** fit the view to this subdivision when it changes */ focusRid?: number;
+  onBasemapError?: () => void;
 }) {
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<MLMap | null>(null);
@@ -63,7 +83,8 @@ export function RiskMap({
       m.addSource("sd", { type: "geojson", data, promoteId: "rid" });
       m.addLayer({ id: "fill", type: "fill", source: "sd", paint: { "fill-color": "#ccc", "fill-opacity": 1 } });
       m.addLayer({ id: "line", type: "line", source: "sd", paint: { "line-color": theme === "dark" ? "#1a1a19" : "#fcfcfb", "line-width": 1 } });
-      m.addLayer({ id: "sel", type: "line", source: "sd", paint: { "line-color": theme === "dark" ? "#ffffff" : "#0b0b0b", "line-width": 2.5 }, filter: ["==", ["get", "rid"], -1] });
+      m.addLayer({ id: "fp", type: "line", source: "sd", paint: { "line-color": theme === "dark" ? "#f0efec" : "#0b0b0b", "line-width": 2, "line-dasharray": [2, 1.5] }, filter: ["in", ["get", "rid"], ["literal", []]] });
+      m.addLayer({ id: "sel", type: "line", source: "sd", paint: { "line-color": theme === "dark" ? "#ffffff" : "#0b0b0b", "line-width": 3 }, filter: ["==", ["get", "rid"], -1] });
       m.on("click", "fill", (e) => { const rid = e.features?.[0]?.properties?.rid; if (rid != null) onSelectRef.current?.(Number(rid), { x: e.point.x, y: e.point.y }); });
       m.on("mouseenter", "fill", () => (m.getCanvas().style.cursor = "pointer"));
       m.on("mouseleave", "fill", () => (m.getCanvas().style.cursor = ""));
@@ -115,6 +136,35 @@ export function RiskMap({
     m.setPaintProperty("fill", "fill-color", expr as ExpressionSpecification);
     m.setFilter("sel", ["==", ["get", "rid"], selected ?? -1]);
   }, [cells, day, layer, theme, ready, selected, orange, colorOf]);
+
+  // basemap (context layer beneath the evidence)
+  const errRef = useRef(onBasemapError);
+  errRef.current = onBasemapError;
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !ready || !m.getLayer("fill")) return;
+    void applyBasemap(m, basemap, theme, () => errRef.current?.()).then(() => {
+      if (m.getLayer("line")) m.setPaintProperty("line", "line-color", basemap === "satellite" || basemap === "terrain" ? "rgba(255,255,255,0.75)" : theme === "dark" || basemap === "dark" ? "#1a1a19" : "#fcfcfb");
+      el.current?.setAttribute("data-basemap", basemap);
+    });
+  }, [basemap, theme, ready]);
+
+  // evidence visibility + footprint overlay
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !ready || !m.getLayer("fill")) return;
+    m.setLayoutProperty("fill", "visibility", evidenceVisible ? "visible" : "none");
+    m.setFilter("fp", ["in", ["get", "rid"], ["literal", footprintRids ?? []]]);
+    el.current?.setAttribute("data-footprint", (footprintRids ?? []).join(","));
+  }, [evidenceVisible, footprintRids, ready]);
+
+  // focus a subdivision
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !ready || focusRid == null) return;
+    const b = bboxOf(focusRid);
+    if (b) m.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: 80, maxZoom: 6.5, duration: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? 0 : 400 });
+  }, [focusRid, ready]);
 
   return <div ref={el} className={interactive ? "h-full min-h-80 w-full rounded-lg border" : "pointer-events-none h-full w-full"} role={interactive ? "application" : "img"} aria-label={label} />;
 }

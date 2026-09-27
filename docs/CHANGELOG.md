@@ -1,3 +1,52 @@
+# Map 2.0: Spatial Intelligence Console (2026-09-27)
+
+**The science is untouched.** No change to P(bust), the model, features, labels, calibration, SHAP, the ENS/IMD processing, the NRT or replay pipelines, the API contracts or the database schema. Every new view re-arranges **existing** outputs from `/matrix`, `/region`, `/explain` and `/revision`. The only new files are two display assets **derived from the existing IMD subdivision GeoJSON** (`scripts/build_map_assets.py`): `adjacency.json` and `india_outline.geojson`. Screenshots are in `docs/screens/map2/`.
+
+## What changed on `/map`
+- **Basemap selector, kept separate from the evidence layers:**
+  - Minimal, Light and Dark work offline (graticule + India outline dissolved from the IMD boundaries).
+  - Satellite (NASA Blue Marble true colour) and Terrain (NASA Blue Marble shaded relief + bathymetry) come from NASA GIBS: public domain, attributed, no key. They are labelled **"Context only — not used by the model"** and need a network connection. When their tiles fail, a message says so and the evidence layers are unaffected. Over imagery the evidence fill drops to 82% opacity, and the legend says so.
+- **Evidence layer panel:** Category 01 Trust (P(Bust)), 02 Forecast (Forecast Rain), 03 Uncertainty (Ensemble Spread), 04 Pattern (Novelty, Revision, Regime). Each layer has a description, legend, units and semantic scale.
+  - One layer at a time, with a show/hide toggle. The P(Bust) blue → grey → red meaning is unchanged.
+  - The legend now says "Chance this forecast busts", explains the 10% baseline and the bands, and states what Day N means (the IMD rain day ending on the valid date).
+- **D1–D10 scrubber:** date per day, previous/next, play/pause, ←/→ keys, and per-day counts of Low (◆) and Reduced (▲) regions. Changing the day updates the map, legend, ranking, footprints, investigation panel and trajectory marker together.
+- **Risk hotspots:** the top 10 by **existing** P(bust), with ties broken by the existing heavy-rain flag. Clicking a row focuses the map on the region, highlights it and opens its investigation.
+- **Risk footprint:** subdivisions at the model's own ▲ Reduced or ◆ Low bands that share a boundary are grouped. 1 region = isolated, 2–4 = clustered, ≥5 = widespread. There's an optional dashed outline on the map. It is labelled **"a spatial grouping of the model's bands, not a detected weather event"**.
+- **Risk migration:** D1→D10 small multiples (lightweight SVG) of the existing P(bust); clicking one selects that day. The existing play animation is kept.
+- **Region investigation panel**, opened by clicking a region, a hotspot or a `?rid=` deep link:
+  - P(bust), confidence, forecast rain and spread for the selected day.
+  - **Trust trajectory** D1→D10 (chart + table) and **confidence momentum** ↑ Improving / → Stable / ↓ Deteriorating. The rule is the least-squares slope of the existing P(bust) against lead day, ±0.5 pts/day, stated in the UI and labelled "not an ML prediction".
+  - **Cycle change** for the same valid date: previous vs current P(bust), the change, and TRUST DETERIORATED/IMPROVED from the sign alone (|Δ| < 0.5 pts = unchanged). The reason shown is the exact change in the model's **existing SHAP** values between the two cycles; otherwise "Reason unavailable in this model version".
+  - **"Why is this region higher risk?"** as Prediction → Evidence (SHAP by group) → Explanation (the fixed template sentences).
+  - **Evidence timeline** ("When did trust change?"), from the existing per-cycle `/revision` data: rain revisions (flagged above the existing 0.4 log-unit threshold) and spread changes.
+  - **Ensemble disagreement:** Low/Moderate/High from the existing spread anomaly (<1×, 1–1.5×, >1.5× normal), plus a q10–q90 band with the ensemble mean and HRES.
+  - **Analog explorer**, which links to the replay when a case is in the store.
+  - Buttons: Open region analysis (`/region/:rid`), Verify, Time Machine.
+- **Full-screen mode** covers the navigation and keeps the layer panel, legend, day control and analysis panel. Esc or the button exits, and the state stays in the URL.
+- **URL state** now also holds `basemap`, `fp` (footprint), `ev` (evidence shown), `mig`, `fs`, `ptab`, `layers` and `panel`. Existing deep links (`init`, `day`, `rid`, `layer`, `split`, `view`) behave as before. The one change: `?rid=` now opens the full investigation panel instead of the small popover.
+- **Responsive:**
+  - desktop: layer panel + map + analysis panel
+  - tablet: map first, panels on demand as overlays
+  - phone: map → risk list → region analysis, with no horizontal overflow (tested)
+
+## Not available (reported, not faked)
+- Analog cases: the analog memory isn't in the shipped model (it needs the 2018–2022 archive). The explorer says so.
+- Ensemble member histogram: individual members aren't stored, only mean, q10, q90 and spread. The band view is shown and the histogram is marked unavailable.
+- Novelty and Regime layers and evidence rows: not in this model version.
+- SHAP attribution for the cycle change is limited to what the model has (the spread group and the lead term).
+- Satellite/Terrain need network access. The offline demo uses Minimal/Light/Dark.
+
+## Tests
+- Vitest 26/26 (+8: hotspot ranking, footprint grouping/classes, momentum rule, cycle verdict, timeline facts, basemap metadata, projection).
+- Playwright replay 70/70 (+17 Map 2.0: basemaps incl. imagery-offline fallback, layer panel, scrubber sync, hotspot focus, footprints, migration, investigation sections, full screen, deep link, phone overflow, axe light+dark on 3 new states); NRT 5/5; offline 2/2.
+- pytest 36/36.
+- Performance: lens switch ≈ 48 ms, day change ≈ 30 ms (budget 50; slower than before because more panels update in sync), cycle switch ≈ 13 ms.
+
+## Environment note
+On this machine ports 8000 and 8001 are now used by other projects, so the test stacks use **8010** (replay API; `PN_API=http://localhost:8010` for `vite preview`) and **8011** (NRT demo API; `PN_NRT_API_PORT`).
+
+---
+
 # Changelog: Forecast Trust Console polish + Operations console (2026-09-25)
 
 Screenshots are in `docs/screens/before/` and `docs/screens/after/` (dark mode, 1440 and 768 px).

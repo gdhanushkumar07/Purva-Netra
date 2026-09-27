@@ -1,106 +1,25 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Pause, Play, PanelRightClose, PanelRightOpen, Columns2, Table2, X } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Columns2, Table2, X, Maximize2, Minimize2, Film } from "lucide-react";
 import type { Map as MLMap } from "maplibre-gl";
 import { useMatrix, type Cell } from "@/api/client";
-import { useInit, useRegionMap, useResolvedTheme, prettyName, pct, pts, mm, linkTo, fmtDate, useLang } from "@/lib/hooks";
+import { useInit, useRegionMap, useResolvedTheme, prettyName, pct, pts, mm, linkTo, fmtDate, useLang, useMediaQuery } from "@/lib/hooks";
 import { useView } from "@/store";
 import { RiskMap } from "@/components/map/RiskMap";
+import { lensColor, lensTip, LensLegend, rev } from "@/components/map/lens";
+export { lensColor, lensTip, LensLegend } from "@/components/map/lens";
 import { ConfidenceBadge, DataTable, ErrorState, Loading } from "@/components/common";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
-import {
-  LENSES, type Lens, type Theme, pbustColor, pbustPalette, seqColor, RAIN_EDGES, SEQ_BLUE, SEQ_BLUE_DARK,
-  SEQ_ORANGE, SEQ_ORANGE_DARK, SPREAD_EDGES, SEQ_VIOLET, SEQ_VIOLET_DARK, NOVELTY_EDGES,
-  revColor, revPalette,
-} from "@/theme/scales";
+import { LayerPanel } from "@/components/map/LayerPanel";
+import { DayScrubber } from "@/components/map/DayScrubber";
+import { MigrationStrip } from "@/components/map/MigrationStrip";
+import { Hotspots } from "@/components/map/Hotspots";
+import { Investigation } from "@/components/map/Investigation";
+import { basemapOf, type BasemapId } from "@/components/map/basemaps";
+import { footprints } from "@/lib/spatial";
+import { LENSES, type Lens } from "@/theme/scales";
 import { cn } from "@/lib/utils";
-
-const NA = (t: Theme) => (t === "dark" ? "#262625" : "#e8e7e1");
-const rev = (c?: Cell) => (c?.f_rain != null && c.f_rain_prev != null ? c.f_rain - c.f_rain_prev : null);
-
-export function lensColor(lens: Lens, theme: Theme, orange = false) {
-  const blue = theme === "dark" ? SEQ_BLUE_DARK : SEQ_BLUE;
-  const org = theme === "dark" ? SEQ_ORANGE_DARK : SEQ_ORANGE;
-  const vio = theme === "dark" ? SEQ_VIOLET_DARK : SEQ_VIOLET;
-  return (c?: Cell) => {
-    if (!c || c.p_bust == null) return NA(theme);
-    switch (lens) {
-      case "pbust": return pbustColor(c.p_bust, theme);
-      case "rain": return seqColor(c.f_rain, RAIN_EDGES, orange ? org : blue);
-      case "spread": return seqColor(c.spread_anom, SPREAD_EDGES, org);
-      case "novelty": return c.novelty == null ? NA(theme) : seqColor(c.novelty, NOVELTY_EDGES, vio);
-      case "revision": { const r = rev(c); return r == null ? NA(theme) : revColor(r, theme); }
-      case "regime": return NA(theme);
-    }
-  };
-}
-export function lensTip(lens: Lens) {
-  return (c?: Cell) => {
-    if (!c || c.p_bust == null) return "Not assessed (no IMD land cells)";
-    switch (lens) {
-      case "pbust": return `P(bust) ${pct(c.p_bust)} · ${c.confidence}`;
-      case "rain": return `Forecast ${mm(c.f_rain)}`;
-      case "spread": return `Spread ${c.spread_anom?.toFixed(2)}× normal`;
-      case "novelty": return c.novelty == null ? "Novelty: not available in this model version" : `Novelty ${c.novelty.toFixed(2)}`;
-      case "revision": { const r = rev(c); return r == null ? "No previous cycle for this valid date" : `${r > 0 ? "+" : ""}${r.toFixed(1)} mm vs previous cycle`; }
-      case "regime": return "Regime: not available in this model version";
-    }
-  };
-}
-
-/** Swatch row with labels on the boundaries between bins (never overlapping). */
-function Swatches({ colors, edges }: { colors: string[]; edges: string[] }) {
-  return (
-    <div>
-      <div className="flex gap-0.5" role="list" aria-label={`bins with boundaries ${edges.join(", ")}`}>
-        {colors.map((c, i) => <span key={i} role="listitem" className="h-2.5 flex-1 rounded-sm border border-black/10 dark:border-white/10" style={{ background: c }} />)}
-      </div>
-      <div className="relative mt-0.5 h-3.5">
-        {edges.map((e, i) => (
-          <span key={i} className="tnum absolute -translate-x-1/2 text-[10px] text-muted-foreground" style={{ left: `${((i + 1) / colors.length) * 100}%` }}>{e}</span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/** Legend for one lens: swatches, units and a one-line meaning; unavailable lenses say so. */
-export function LensLegend({ lens, theme, cells, orange = false }: { lens: Lens; theme: Theme; cells: Cell[]; orange?: boolean }) {
-  const L = LENSES.find((l) => l.id === lens)!;
-  const noveltyMissing = lens === "novelty" && cells.every((c) => c.novelty == null);
-  const unavailable = lens === "regime" || noveltyMissing;
-  return (
-    <figure className="space-y-1 text-xs" data-testid="lens-legend" aria-label={`${L.label} legend`}>
-      <figcaption className="flex justify-between gap-2"><span className="font-semibold">{L.label}</span><span className="text-muted-foreground">{L.units}</span></figcaption>
-      {unavailable ? (
-        <p className="rounded border border-dashed px-2 py-1 text-muted-foreground" data-testid="lens-na">– Not available in this model version</p>
-      ) : lens === "pbust" ? <Swatches colors={pbustPalette(theme)} edges={["3", "6", "9", "12", "18", "25", "35"]} />
-        : lens === "rain" ? <Swatches colors={orange ? (theme === "dark" ? SEQ_ORANGE_DARK : SEQ_ORANGE) : theme === "dark" ? SEQ_BLUE_DARK : SEQ_BLUE} edges={["1", "2.5", "7.5", "15", "35", "64.5"]} />
-        : lens === "spread" ? <Swatches colors={theme === "dark" ? SEQ_ORANGE_DARK : SEQ_ORANGE} edges={["0.5", "0.75", "1", "1.25", "1.5", "2"]} />
-        : lens === "novelty" ? <Swatches colors={theme === "dark" ? SEQ_VIOLET_DARK : SEQ_VIOLET} edges={["0.5", "1", "1.5", "2", "2.5", "3"]} />
-        : <Swatches colors={revPalette(theme)} edges={["−20", "−10", "−3", "+3", "+10", "+20"]} />}
-      <p className="text-muted-foreground">{L.meaning}</p>
-    </figure>
-  );
-}
-
-/** Low-confidence count per day (Day 1–10) — a small bar sparkline above the scrubber. */
-function LowSparkline({ cells, day, onPick }: { cells: Cell[]; day: number; onPick: (d: number) => void }) {
-  const counts = [...Array(10)].map((_, i) => new Set(cells.filter((c) => c.lead === i + 1 && c.confidence === "Low").map((c) => c.rid)).size);
-  const max = Math.max(1, ...counts);
-  return (
-    <div className="flex h-7 items-end gap-0.5" data-testid="low-sparkline" aria-label={`Regions at Low confidence by day: ${counts.map((n, i) => `Day ${i + 1} ${n}`).join(", ")}`}>
-      {counts.map((n, i) => (
-        <button key={i} type="button" onClick={() => onPick(i + 1)} title={`Day ${i + 1}: ${n} region(s) at Low confidence`}
-          className="flex h-full flex-1 flex-col justify-end" aria-label={`Day ${i + 1}: ${n} at Low`}>
-          <span className={cn("block w-full rounded-t-xs", i + 1 === day ? "bg-foreground" : "bg-foreground/35")} style={{ height: `${Math.max(8, (n / max) * 100)}%` }} />
-        </button>
-      ))}
-    </div>
-  );
-}
 
 function Popover({ cell, name, x, y, onClose, day }: { cell?: Cell; name: string; x: number; y: number; onClose: () => void; day: number }) {
   const lang = useLang();
@@ -133,25 +52,48 @@ function Popover({ cell, name, x, y, onClose, day }: { cell?: Cell; name: string
   );
 }
 
+let adjCache: Record<string, number[]> | null = null;
+function useAdjacency() {
+  const [a, setA] = useState(adjCache);
+  useEffect(() => { if (!a) void fetch("/geo/adjacency.json").then((r) => r.json()).then((j) => { adjCache = j; setA(j); }); }, [a]);
+  return a;
+}
+
+/** PURVA-NETRA Spatial Intelligence Console — consumes existing predictions only. */
 export default function MapPage() {
   const { t } = useTranslation();
   const theme = useResolvedTheme();
   const { init } = useInit();
   const m = useMatrix(init);
   const regions = useRegionMap();
+  const adjacency = useAdjacency();
   const v = useView();
   const day = Math.min(10, Math.max(1, Number(v.get("day") ?? 1)));
   const lens = (LENSES.some((l) => l.id === v.get("layer")) ? v.get("layer") : "pbust") as Lens;
   const split = v.get("split") === "1";
-  const panel = v.get("panel") !== "0";
+  const wide = useMediaQuery("(min-width: 1024px)");
+  const phoneQ = useMediaQuery("(max-width: 639px)");
+  // defaults by screen size (desktop: both open · tablet: collapsed · phone: stacked); URL always wins
+  const layersOpen = v.get("layers") === "1" || (v.get("layers") !== "0" && wide);
+  const panel = v.get("panel") === "1" || (v.get("panel") !== "0" && (wide || phoneQ));
   const table = v.get("view") === "table";
+  const fs = v.get("fs") === "1";
+  const mig = v.get("mig") === "1";
+  const fpOn = v.get("fp") === "1";
+  const evOn = v.get("ev") !== "0";
+  const basemap = basemapOf(v.get("basemap")).id;
+  const ptab = v.get("ptab") ?? (v.get("rid") != null ? "investigate" : "hotspots");
   const sel = v.get("rid") != null ? Number(v.get("rid")) : undefined;
   const [ptState, setPt] = useState<{ x: number; y: number } | null>(null);
-  const pt = ptState ?? (v.get("rid") != null ? { x: 16, y: 8 } : null);   // shared link with ?rid= → popover top-left
+  const pt = ptState;
+  const [focusRid, setFocusRid] = useState<number | undefined>(undefined);
+  const [bmError, setBmError] = useState(false);
   const [playing, setPlaying] = useState(false);
   const sync = useRef<MLMap[]>([]);
   const reduced = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const phone = phoneQ;
 
+  useEffect(() => { setBmError(false); }, [basemap]);
   const setDay = useCallback((d: number) => v.set({ day: Math.min(10, Math.max(1, d)) }), [v]);
   useEffect(() => {
     if (!playing) return;
@@ -169,10 +111,11 @@ export default function MapPage() {
       const d = Number(new URLSearchParams(window.location.search).get("day") ?? 1);
       if (e.key === "ArrowRight") { e.preventDefault(); setDay(d + 1); }
       if (e.key === "ArrowLeft") { e.preventDefault(); setDay(d - 1); }
+      if (e.key === "Escape" && new URLSearchParams(window.location.search).get("fs") === "1" && !document.querySelector("[data-testid=region-popover]")) v.set({ fs: undefined });
     };
     window.addEventListener("keydown", f);
     return () => window.removeEventListener("keydown", f);
-  }, [setDay]);
+  }, [setDay, v]);
 
   const colorOf = useMemo(() => lensColor(lens, theme), [lens, theme]);
   const tipOf = useMemo(() => lensTip(lens), [lens]);
@@ -180,21 +123,55 @@ export default function MapPage() {
   const rainTip = useMemo(() => lensTip("rain"), []);
   const pOf = useMemo(() => lensColor("pbust", theme), [theme]);
   const pTip = useMemo(() => lensTip("pbust"), []);
+  const cells = m.data;
+  const dayCells = useMemo(() => (cells ?? []).filter((c) => c.lead === day), [cells, day]);
+  const fpRids = useMemo(() => (fpOn && adjacency ? footprints(dayCells, adjacency).filter((f) => f.rids.length > 0).flatMap((f) => f.rids) : []), [fpOn, adjacency, dayCells]);
 
   if (m.isLoading || !init) return <Loading />;
   if (m.error) return <ErrorState error={m.error} onRetry={() => m.refetch()} />;
-  const cells = m.data!;
-  const dayCells = cells.filter((c) => c.lead === day);
+  const allCells = cells!;
   const selCell = sel != null ? dayCells.find((c) => c.rid === sel) : undefined;
-  const select = (rid: number, p: { x: number; y: number }) => { v.set({ rid }); setPt(p); };
-  const worst = dayCells.filter((c) => c.p_bust != null).sort((a, b) => (b.p_bust ?? 0) - (a.p_bust ?? 0)).slice(0, 6);
+  const openPanel = wide || phone ? undefined : 1;             // tablet: clicking a region opens the analysis overlay
+  const select = (rid: number, p: { x: number; y: number }) => { v.set({ rid, ptab: "investigate", panel: openPanel, layers: wide ? v.get("layers") : 0 }); setPt(p); };
+  const pick = (rid: number) => { v.set({ rid, ptab: "investigate", panel: openPanel }); setFocusRid(rid); setPt(null); };
+  const validDate = fmtDate(dayCells[0]?.valid_date);
+  const bm = basemapOf(basemap);
+  const mapProps = { basemap: basemap as BasemapId, footprintRids: fpRids, evidenceVisible: evOn, onBasemapError: () => setBmError(true), focusRid };
+
+  const layerPanel = (
+    <LayerPanel basemap={basemap} onBasemap={(b) => v.set({ basemap: b === "minimal" ? undefined : b })} lens={lens} onLens={(l) => v.set({ layer: l })}
+      evidenceOn={evOn} onEvidence={(b) => v.set({ ev: b ? undefined : 0 })} footprintOn={fpOn} onFootprint={(b) => v.set({ fp: b ? 1 : undefined })}
+      theme={theme} cells={allCells} basemapError={bmError} day={day} validDate={validDate} split={split} />
+  );
+  const rightPanel = (
+    <div className="flex h-full min-h-0 flex-col gap-1">
+      <div className="flex rounded-md border p-0.5 text-xs" role="tablist" aria-label="Analysis panel">
+        {[["hotspots", "Risk hotspots"], ["investigate", "Investigate"]].map(([k, l]) => (
+          <button key={k} role="tab" aria-selected={ptab === k} data-testid={`ptab-${k}`} onClick={() => v.set({ ptab: k })}
+            className={cn("flex-1 rounded px-2 py-1", ptab === k ? "bg-foreground text-background" : "hover:bg-accent")}>{l}</button>
+        ))}
+      </div>
+      <div className="min-h-0 flex-1 overflow-auto">
+        {ptab === "investigate" && sel != null ? (
+          <Investigation rid={sel} name={regions.get(sel)?.name ?? ""} day={day} init={init} cells={allCells} onDay={setDay}
+            onClose={() => { v.set({ rid: undefined, ptab: "hotspots" }); setPt(null); }} />
+        ) : ptab === "investigate" ? (
+          <p className="panel panel-sec text-xs text-muted-foreground" data-testid="inv-empty">Click a subdivision on the map or a hotspot to investigate it.</p>
+        ) : (
+          <div className="panel panel-sec"><Hotspots dayCells={dayCells} regions={regions} adjacency={adjacency} selected={sel} onPick={pick} day={day} /></div>
+        )}
+      </div>
+    </div>
+  );
 
   return (
-    <div className="flex h-[calc(100svh-var(--hdr,48px)-1.25rem)] flex-col gap-2">
+    <div data-testid="map-console" data-fullscreen={fs ? "1" : "0"}
+      className={cn("flex flex-col gap-2", fs ? "fixed inset-0 z-50 bg-background p-2" : phone ? "" : "h-[calc(100svh-var(--hdr,48px)-1.25rem)]")}>
       {/* toolbar */}
       <div className="flex flex-wrap items-center gap-2" role="toolbar" aria-label="Map toolbar">
-        <h1 className="sr-only">{t("map.title")}</h1>
-        <span className="panel-title">Trust Lens</span>
+        <h1 className="text-sm font-semibold">Spatial Intelligence</h1>
+        <Button size="icon" variant="ghost" aria-pressed={layersOpen} aria-label={layersOpen ? "Hide layer panel" : "Show layer panel"} data-testid="layers-toggle"
+          onClick={() => v.set({ layers: layersOpen ? 0 : 1, panel: !wide && !layersOpen ? 0 : v.get("panel") })}>{layersOpen ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}</Button>
         <div className="flex flex-wrap rounded-md border p-0.5" role="radiogroup" aria-label="Trust Lens" data-testid="lens-switcher">
           {LENSES.map((l) => (
             <button key={l.id} type="button" role="radio" aria-checked={lens === l.id} disabled={split}
@@ -207,23 +184,35 @@ export default function MapPage() {
         <Button size="sm" variant={split ? "default" : "outline"} aria-pressed={split} data-testid="split-toggle" onClick={() => v.set({ split: split ? undefined : 1 })}>
           <Columns2 className="size-4" aria-hidden />Split
         </Button>
-        <Button size="sm" variant="outline" aria-pressed={table} onClick={() => v.set({ view: table ? undefined : "table" })}>
+        <Button size="sm" variant="outline" aria-pressed={table} onClick={() => v.set({ view: table ? undefined : "table" })} data-testid="table-toggle">
           <Table2 className="size-4" aria-hidden />{table ? t("common.chart_view") : t("common.table_view")}
         </Button>
-        <Button size="sm" variant="ghost" className="ml-auto" aria-pressed={panel} aria-label={panel ? "Collapse side panel" : "Expand side panel"}
-          onClick={() => v.set({ panel: panel ? 0 : undefined })}>
-          {panel ? <PanelRightClose className="size-4" /> : <PanelRightOpen className="size-4" />}
+        <Button size="sm" variant={mig ? "default" : "outline"} aria-pressed={mig} data-testid="migration-toggle" onClick={() => v.set({ mig: mig ? undefined : 1 })}>
+          <Film className="size-4" aria-hidden />Migration
         </Button>
+        <span className="text-[11px] text-muted-foreground">basemap: {bm.label}{bm.network ? " (context)" : ""}</span>
+        <div className="ml-auto flex items-center gap-1">
+          <Button size="sm" variant="outline" aria-pressed={fs} data-testid="fullscreen-toggle" onClick={() => v.set({ fs: fs ? undefined : 1 })}>
+            {fs ? <Minimize2 className="size-4" aria-hidden /> : <Maximize2 className="size-4" aria-hidden />}{fs ? "Exit full screen" : "Full screen"}
+          </Button>
+          <Button size="icon" variant="ghost" aria-pressed={panel} aria-label={panel ? "Collapse side panel" : "Expand side panel"} data-testid="panel-toggle"
+            onClick={() => v.set({ panel: panel ? 0 : 1, layers: !wide && !panel ? 0 : v.get("layers") })}>{panel ? <PanelRightClose className="size-4" /> : <PanelRightOpen className="size-4" />}</Button>
+        </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 gap-2">
-        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-2">
+      <div className={cn("relative flex gap-2", phone ? "flex-col" : "min-h-0 flex-1")}>
+        {layersOpen && (
+          <aside className={cn("panel shrink-0 overflow-auto p-3", phone ? "order-3" : "absolute left-0 top-0 z-30 max-h-[70%] w-72 shadow-lg lg:static lg:max-h-none lg:w-64 lg:shadow-none")}
+            aria-label="Layers and legend">{layerPanel}</aside>
+        )}
+        <div className={cn("relative flex min-w-0 flex-1 flex-col gap-2", !phone && "min-h-0")}>
           {table ? (
             <div className="panel flex-1 overflow-auto">
               <DataTable
                 cols={[
                   { key: "rid", label: t("common.region"), fmt: (x) => prettyName(regions.get(x as number)?.name) },
                   { key: "p_bust", label: "P(bust)", fmt: (x) => pct(x as number, 1) },
+                  { key: "p_bust_prev", label: "P(bust) prev. cycle", fmt: (x) => pct(x as number, 1) },
                   { key: "confidence", label: t("common.confidence") },
                   { key: "f_rain", label: "Forecast rain", fmt: (x) => mm(x as number) },
                   { key: "spread_anom", label: "Spread ×", fmt: (x) => (x == null ? "–" : (x as number).toFixed(2)) },
@@ -234,62 +223,39 @@ export default function MapPage() {
               />
             </div>
           ) : split ? (
-            <div className="flex min-h-0 flex-1 gap-2" data-testid="split-maps">
+            <div className={cn("flex gap-2", phone ? "h-[55svh]" : "min-h-0 flex-1")} data-testid="split-maps">
               <div className="flex min-w-0 flex-1 flex-col gap-1"><span className="text-xs font-medium">Forecast Rain</span>
-                <RiskMap cells={cells} day={day} layer="rain" theme={theme} syncRef={sync} selected={sel} onSelect={select} colorOf={rainOf} tipOf={rainTip} label={`Forecast rain map, day ${day}`} /></div>
+                <RiskMap cells={allCells} day={day} layer="rain" theme={theme} syncRef={sync} selected={sel} onSelect={select} colorOf={rainOf} tipOf={rainTip} label={`Forecast rain map, day ${day}`} {...mapProps} /></div>
               <div className="flex min-w-0 flex-1 flex-col gap-1"><span className="text-xs font-medium">P(Bust)</span>
-                <RiskMap cells={cells} day={day} layer="pbust" theme={theme} syncRef={sync} selected={sel} onSelect={select} colorOf={pOf} tipOf={pTip} label={`P(bust) map, day ${day}`} /></div>
+                <RiskMap cells={allCells} day={day} layer="pbust" theme={theme} syncRef={sync} selected={sel} onSelect={select} colorOf={pOf} tipOf={pTip} label={`P(bust) map, day ${day}`} {...mapProps} /></div>
             </div>
           ) : (
-            <div className="relative min-h-0 flex-1" data-testid="hero-map">
-              <RiskMap cells={cells} day={day} layer={lens} theme={theme} selected={sel} onSelect={select} colorOf={colorOf} tipOf={tipOf}
-                label={`${LENSES.find((l) => l.id === lens)!.label} map, day ${day}. ${t("map.click_hint")}`} />
+            <div className={cn("relative", phone ? "h-[55svh]" : "min-h-0 flex-1")} data-testid="hero-map">
+              <RiskMap cells={allCells} day={day} layer={lens} theme={theme} selected={sel} onSelect={select} colorOf={colorOf} tipOf={tipOf}
+                label={`${LENSES.find((l) => l.id === lens)!.label} map, day ${day}. ${t("map.click_hint")}`} {...mapProps} />
               {lens === "regime" && (
                 <div className="pointer-events-none absolute inset-x-0 top-3 mx-auto w-fit rounded border bg-card/90 px-3 py-1 text-sm" data-testid="regime-na">
                   Regime: Not available in this model version
                 </div>
               )}
+              {!layersOpen && (
+                <div className="pointer-events-none absolute bottom-8 left-2 w-64 rounded border bg-card/90 p-2" data-testid="lens-legend-float">
+                  <LensLegend lens={lens} theme={theme} cells={allCells} />
+                </div>
+              )}
             </div>
           )}
           {sel != null && pt && !table && (
-            <Popover cell={selCell} name={prettyName(regions.get(sel)?.name)} x={split ? pt.x : pt.x} y={pt.y + 40} day={day}
-              onClose={() => { v.set({ rid: undefined }); setPt(null); }} />
+            <Popover cell={selCell} name={prettyName(regions.get(sel)?.name)} x={pt.x} y={pt.y + 40} day={day}
+              onClose={() => setPt(null)} />
           )}
-          {/* scrubber */}
-          <div className="panel px-3 py-2" data-tour="scrubber">
-            <LowSparkline cells={cells} day={day} onPick={setDay} />
-            <div className="mt-1 flex items-center gap-3">
-              <Button size="sm" onClick={() => { if (day >= 10) setDay(1); setPlaying(!playing); }} aria-label={playing ? t("map.pause") : t("map.play")} data-testid="play">
-                {playing ? <Pause className="size-4" /> : <Play className="size-4" />}
-              </Button>
-              <Slider className="flex-1" min={1} max={10} step={1} value={[day]} onValueChange={([d]) => setDay(d)} aria-label={t("common.day")} />
-              <span className="tnum w-36 text-sm font-semibold" aria-live="polite" data-testid="day-label">{t("common.day")} {day} · {fmtDate(dayCells[0]?.valid_date)}</span>
-            </div>
-            <p className="mt-1 text-[11px] text-muted-foreground">← → change day · bars: regions at Low confidence per day</p>
-          </div>
+          <DayScrubber cells={allCells} day={day} onDay={setDay} playing={playing} onPlay={() => { if (day >= 10) setDay(1); setPlaying(!playing); }} />
+          {mig && <MigrationStrip cells={allCells} day={day} onDay={setDay} theme={theme} />}
         </div>
 
         {panel && (
-          <aside className="panel hidden w-72 shrink-0 flex-col overflow-auto md:flex" aria-label="Map side panel" data-testid="side-panel">
-            <div className="panel-sec">
-              {split ? <><LensLegend lens="rain" orange theme={theme} cells={cells} /><div className="mt-2"><LensLegend lens="pbust" theme={theme} cells={cells} /></div></>
-                : <LensLegend lens={lens} theme={theme} cells={cells} />}
-            </div>
-            <div className="panel-sec">
-              <h2 className="panel-title mb-1">Lowest trust · Day {day}</h2>
-              <ul className="divide-y divide-border/60">
-                {worst.map((c) => (
-                  <li key={c.rid} className="flex items-center gap-2 py-1 text-xs">
-                    <button type="button" className="min-w-0 flex-1 truncate text-left hover:underline" onClick={() => { v.set({ rid: c.rid }); setPt({ x: 40, y: 80 }); }}>
-                      {prettyName(regions.get(c.rid)?.name)}
-                    </button>
-                    <span className="tnum font-semibold">{pct(c.p_bust)}</span>
-                    <ConfidenceBadge band={c.confidence} />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </aside>
+          <div className={cn("shrink-0", phone ? "order-2" : "absolute right-0 top-0 z-30 h-full w-[22rem] shadow-lg lg:static lg:h-auto lg:w-80 lg:shadow-none xl:w-96")}
+            data-testid="side-panel">{rightPanel}</div>
         )}
       </div>
     </div>

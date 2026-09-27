@@ -53,7 +53,7 @@ test("view state lives in the URL (shareable link restores the view)", async ({ 
   await page.goto("/map?day=7&layer=rain&rid=8");
   await expect(page.getByTestId("day-label")).toContainText("Day 7");
   await expect(page.getByTestId("lens-rain")).toHaveAttribute("aria-checked", "true");
-  await expect(page.getByTestId("region-popover")).toContainText("Vidarbha");
+  await expect(page.getByTestId("inv-name")).toContainText("Vidarbha");     // selected region restored from the URL
 });
 
 test("full replay: advance Day 1→10 with truth reveal and score ticker", async ({ page }) => {
