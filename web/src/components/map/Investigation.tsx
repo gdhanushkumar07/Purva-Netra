@@ -5,16 +5,17 @@ import { dnaBars, chartInk } from "@/theme/scales";
 import { momentum, cycleVerdict, evidenceTimeline, isElevated, RULES } from "@/lib/spatial";
 import { pct, pts, mm, fmtDate, fmtInit, linkTo, prettyName, useLang, useResolvedTheme } from "@/lib/hooks";
 import { ConfidenceBadge, DataTable, Loading } from "@/components/common";
+import { InfoTip } from "./controls";
 import { EChart } from "@/components/common/EChart";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 function Sec({ title, children, testid }: { title: string; children: React.ReactNode; testid?: string }) {
-  return <section className="panel-sec" data-testid={testid}><h4 className="panel-title mb-1">{title}</h4>{children}</section>;
+  return <section className="border-t px-3 py-2" data-testid={testid}><h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</h4>{children}</section>;
 }
 const NA_TEXT = "Not available in this model version";
 
-function Trajectory({ traj, day, onDay }: { traj: (number | null)[]; day: number; onDay: (d: number) => void }) {
+function Trajectory({ traj, day }: { traj: (number | null)[]; day: number; onDay?: (d: number) => void }) {
   const theme = useResolvedTheme();
   const ink = chartInk(theme);
   const mo = momentum(traj);
@@ -23,29 +24,19 @@ function Trajectory({ traj, day, onDay }: { traj: (number | null)[]; day: number
     <Sec title="Trust trajectory · P(Bust) D1 → D10" testid="trajectory">
       <div className="mb-1 flex items-center gap-2 text-xs">
         <span className="rounded border px-1.5 py-0.5 font-semibold" data-testid="momentum" data-momentum={mo.m}>{arrow}</span>
-        <span className="text-muted-foreground">
-          {mo.slopePtsPerDay == null ? "too few days" : `${mo.slopePtsPerDay >= 0 ? "+" : ""}${mo.slopePtsPerDay.toFixed(1)} pts/day`} ·
-          descriptive rule: least-squares slope &gt; +{RULES.momentumPtsPerDay} pts/day = deteriorating, &lt; −{RULES.momentumPtsPerDay} = improving, else stable. Not an ML prediction.
-        </span>
+        <span className="tnum text-muted-foreground">{mo.slopePtsPerDay == null ? "too few days" : `${mo.slopePtsPerDay >= 0 ? "+" : ""}${mo.slopePtsPerDay.toFixed(1)} pts/day`}</span>
+        <InfoTip label="Momentum rule" text={`Descriptive rule on the existing P(bust): least-squares slope over Day 1–10 > +${RULES.momentumPtsPerDay} pts/day = deteriorating, < −${RULES.momentumPtsPerDay} = improving, else stable. Not an ML prediction.`} />
       </div>
-      <EChart height={110} label={`P(bust) by lead day: ${traj.map((p, i) => `D${i + 1} ${pct(p)}`).join(", ")}`}
+      <EChart height={90} label={`P(bust) by lead day: ${traj.map((p, i) => `D${i + 1} ${pct(p)}`).join(", ")}`}
         option={{
           grid: { left: 36, right: 8, top: 8, bottom: 20 },
           xAxis: { type: "category", data: traj.map((_, i) => `D${i + 1}`) },
-          yAxis: { type: "value", min: 0, axisLabel: { formatter: (v: number) => `${Math.round(v * 100)}%` } },
+          yAxis: { type: "value", min: 0, splitNumber: 2, axisLabel: { formatter: (v: number) => `${Math.round(v * 100)}%` } },
           tooltip: { trigger: "axis", valueFormatter: (v) => pct(v as number, 1) },
           series: [{ name: "P(bust)", type: "line", data: traj, lineStyle: { width: 2, color: ink.text }, itemStyle: { color: ink.text }, symbolSize: 6,
             markLine: { silent: true, symbol: "none", label: { formatter: "10%", position: "insideEndTop", color: ink.muted }, lineStyle: { type: "dashed", color: ink.muted }, data: [{ yAxis: 0.1 }] },
             markPoint: { symbol: "circle", symbolSize: 12, itemStyle: { color: "transparent", borderColor: ink.text, borderWidth: 2 }, label: { show: false }, data: [{ name: "day", coord: [`D${day}`, traj[day - 1] ?? 0] }] } }],
         }} />
-      <div className="mt-1 flex gap-0.5" role="group" aria-label="Select day from trajectory">
-        {traj.map((p, i) => (
-          <button key={i} type="button" onClick={() => onDay(i + 1)} aria-pressed={day === i + 1}
-            className={cn("tnum flex-1 rounded border py-0.5 text-[10px]", day === i + 1 ? "border-foreground" : "border-transparent hover:border-border")}>
-            D{i + 1}<br />{p == null ? "–" : Math.round(p * 100)}
-          </button>
-        ))}
-      </div>
     </Sec>
   );
 }
@@ -67,22 +58,40 @@ function CycleChange({ cell, cur, prev }: { cell: Cell; cur?: Explain; prev?: Ex
     }
   }
   return (
-    <Sec title="Cycle change · same valid date" testid="cycle-change">
+    <Sec title="Cycle change" testid="cycle-change">
       <div className="grid grid-cols-3 gap-2 text-center">
         <div><div className="text-[11px] text-muted-foreground">Previous cycle</div><div className="kpi-sm" data-testid="cc-prev">{pct(cell.p_bust_prev)}</div></div>
         <div><div className="text-[11px] text-muted-foreground">Current cycle</div><div className="kpi-sm" data-testid="cc-cur">{pct(cell.p_bust)}</div></div>
         <div><div className="text-[11px] text-muted-foreground">Change</div><div className="kpi-sm" data-testid="cc-delta">{deltaPts == null ? "–" : pts(deltaPts / 100)}</div></div>
       </div>
-      <p className="mt-1 text-xs font-semibold" data-testid="cc-verdict" data-verdict={v}>{verdict}</p>
-      <p className="text-[11px] text-muted-foreground">Verdict from the sign of the change only (|change| &lt; {RULES.cycleUnchangedPts} pts = unchanged).</p>
+      <p className="mt-1 flex items-center gap-1 text-xs font-semibold" data-testid="cc-verdict" data-verdict={v}>{verdict}
+        <InfoTip label="Cycle verdict" text={`Same valid date, cycle 12 h earlier. Verdict from the sign of the change only (|change| < ${RULES.cycleUnchangedPts} pts = unchanged).`} /></p>
       <div className="mt-1 text-xs" data-testid="cc-reason">
         {shapDiffs.length > 0 ? (
           <>
-            <div className="text-muted-foreground">Change in model evidence (SHAP, log-odds) between the two cycles:</div>
-            <ul className="tnum">{shapDiffs.map((x) => <li key={x.k}>{x.k}: {x.d >= 0 ? "+" : ""}{x.d.toFixed(2)} {x.d > 0 ? "(raises risk)" : x.d < 0 ? "(lowers risk)" : ""}</li>)}</ul>
+            <div className="text-muted-foreground">SHAP change (log-odds):</div>
+            <ul className="tnum text-muted-foreground">{shapDiffs.map((x) => <li key={x.k}>{x.k}: {x.d >= 0 ? "+" : ""}{x.d.toFixed(2)} {x.d > 0 ? "(raises risk)" : x.d < 0 ? "(lowers risk)" : ""}</li>)}</ul>
           </>
         ) : v === "unavailable" ? null : <span className="text-muted-foreground">Reason unavailable in this model version.</span>}
       </div>
+    </Sec>
+  );
+}
+
+function EvidenceCompact({ ex }: { ex?: Explain }) {
+  if (!ex) return <Sec title="Evidence"><Loading /></Sec>;
+  const bars = ex.group_contributions ? dnaBars(ex.group_contributions.groups) : [];
+  return (
+    <Sec title="Evidence" testid="evidence-compact">
+      <ul className="space-y-0.5 text-xs">
+        {bars.map((b) => (
+          <li key={b.group} className="flex justify-between gap-2" data-testid={`evc-${b.group}`} data-available={b.available}>
+            <span className={b.available ? "" : "text-muted-foreground"}>{b.label}</span>
+            <span className="tnum text-muted-foreground">{!b.available ? "— not available" : b.side === "raises" ? `↑ raises risk (${b.value!.toFixed(2)})` : b.side === "lowers" ? `↓ lowers risk (${b.value!.toFixed(2)})` : "→ neutral"}</span>
+          </li>
+        ))}
+        <li className="flex justify-between gap-2"><span>Analog</span><span className="text-muted-foreground">{(ex.analogs ?? []).length ? `${ex.analogs.length} cases available` : "— not available"}</span></li>
+      </ul>
     </Sec>
   );
 }
@@ -155,7 +164,8 @@ function Ensemble({ day }: { day?: { ens_q10: number | null; ens_q90: number | n
   const level = s == null ? "unknown" : s < 1 ? "LOW DISAGREEMENT" : s <= 1.5 ? "MODERATE DISAGREEMENT" : "HIGH DISAGREEMENT";
   return (
     <Sec title="Ensemble disagreement" testid="ensemble">
-      <p className="text-xs"><strong>{level}</strong> · spread {s == null ? "–" : `${s.toFixed(2)}× normal`} <span className="text-muted-foreground">(&lt;1× low · 1–1.5× moderate · &gt;1.5× high; relative to this region, lead and month)</span></p>
+      <p className="flex items-center gap-1 text-xs"><strong>{level}</strong> · spread {s == null ? "–" : `${s.toFixed(2)}× normal`}
+        <InfoTip label="Disagreement levels" text="From the existing spread anomaly: <1× normal low · 1–1.5× moderate · >1.5× high (normal = this region, lead and month in training)." /></p>
       <div className="relative mt-2 h-6 rounded bg-muted/50" role="img"
         aria-label={`Ensemble q10 ${mm(day.ens_q10)} to q90 ${mm(day.ens_q90)}, mean ${mm(day.ens_mean)}, HRES ${mm(day.f_rain)}`}>
         <span className="absolute inset-y-1 rounded bg-[#3987e5]/40" style={{ left: x(day.ens_q10), width: `calc(${x(day.ens_q90)} - ${x(day.ens_q10)})` }} />
@@ -208,10 +218,10 @@ export function Investigation({ rid, name, day, init, cells, onDay, onClose }: {
   const cycles = (useCycles().data ?? []).map((c) => c.init);
   const rd = reg.data?.days.find((d) => d.lead === day);
   return (
-    <aside className="panel flex h-full flex-col overflow-hidden" aria-label={`${name} investigation`} data-testid="investigation">
-      <div className="panel-sec flex items-start justify-between gap-2">
+    <aside className="flex h-full flex-col overflow-hidden" aria-label={`${name} investigation`} data-testid="investigation">
+      <div className="flex items-start justify-between gap-2 px-3 py-2">
         <div>
-          <h3 className="text-base font-semibold leading-tight" data-testid="inv-name">{prettyName(name)}</h3>
+          <h3 className="text-sm font-semibold uppercase tracking-wide" data-testid="inv-name">{prettyName(name)}</h3>
           <p className="text-xs text-muted-foreground">Day {day} · valid {fmtDate(cell?.valid_date)} · cycle {fmtInit(init)}</p>
         </div>
         <button type="button" aria-label="Close investigation" onClick={onClose} className="text-muted-foreground"><X className="size-4" /></button>
@@ -221,36 +231,39 @@ export function Investigation({ rid, name, day, init, cells, onDay, onClose }: {
           <Sec title="Not assessed"><p className="text-xs">No IMD land cells in this subdivision's 0.25° grid, so there is no truth to define a bust. No substitute dataset is used.</p></Sec>
         ) : (
           <>
-            <section className="panel-sec grid grid-cols-2 gap-2" data-testid="inv-summary">
-              <div><div className="text-[11px] text-muted-foreground">P(BUST)</div><div className="kpi" data-testid="inv-pbust">{pct(cell.p_bust)}</div></div>
-              <div><div className="text-[11px] text-muted-foreground">CONFIDENCE</div><div className="pt-2"><ConfidenceBadge band={cell.confidence} /></div></div>
-              <div><div className="text-[11px] text-muted-foreground">FORECAST RAIN</div><div className="kpi-sm">{mm(cell.f_rain)}</div></div>
-              <div><div className="text-[11px] text-muted-foreground">ENSEMBLE SPREAD</div><div className="kpi-sm">{cell.spread_anom == null ? "–" : `${cell.spread_anom.toFixed(2)}×`}</div></div>
+            <section className="grid grid-cols-2 gap-x-3 gap-y-1 px-3 py-2" data-testid="inv-summary">
+              <div><div className="text-[10px] uppercase tracking-wider text-muted-foreground">P(Bust)</div><div className="kpi" data-testid="inv-pbust">{pct(cell.p_bust)}</div></div>
+              <div><div className="text-[10px] uppercase tracking-wider text-muted-foreground">Confidence</div><div className="pt-2"><ConfidenceBadge band={cell.confidence} /></div></div>
+              <div className="text-xs text-muted-foreground">Rain <span className="tnum text-foreground">{mm(cell.f_rain)}</span></div>
+              <div className="text-xs text-muted-foreground">Spread <span className="tnum text-foreground">{cell.spread_anom == null ? "–" : `${cell.spread_anom.toFixed(2)}×`}</span></div>
             </section>
             <Trajectory traj={traj} day={day} onDay={onDay} />
             <CycleChange cell={cell} cur={ex.data} prev={exPrev.data} />
-            <WhySection cell={cell} ex={ex.data} />
-            {cell.valid_date && <Timeline rid={rid} valid={cell.valid_date} upto={init} />}
-            <Ensemble day={rd ? { ens_q10: rd.ens_q10, ens_q90: rd.ens_q90, ens_mean: rd.ens_mean, f_rain: rd.f_rain, spread_anom: rd.spread_anom } : undefined} />
-            <Analogs ex={ex.data} cycles={cycles} />
-            <Sec title="Novelty · regime">
-              <p className="text-xs text-muted-foreground">Novelty: {cell.novelty == null ? NA_TEXT : cell.novelty.toFixed(2)} · Regime: {cell.regime ?? NA_TEXT}</p>
-            </Sec>
-            <details className="panel-sec text-xs">
-              <summary className="cursor-pointer">Table view of this panel's values</summary>
-              <DataTable cols={[{ key: "k", label: "Item" }, { key: "v", label: "Value" }]} rows={[
-                { k: "P(bust)", v: pct(cell.p_bust, 1) }, { k: "Previous cycle P(bust)", v: pct(cell.p_bust_prev, 1) },
-                { k: "Confidence", v: cell.confidence }, { k: "Forecast rain", v: mm(cell.f_rain) },
-                { k: "Spread anomaly", v: cell.spread_anom?.toFixed(2) ?? "–" }, ...traj.map((p, i) => ({ k: `P(bust) D${i + 1}`, v: pct(p, 1) })),
-              ]} />
+            <EvidenceCompact ex={ex.data} />
+            <details className="border-t" data-testid="more-detail">
+              <summary className="cursor-pointer px-3 py-2 text-xs font-medium">More detail — why, timeline, ensemble, analogs</summary>
+              <WhySection cell={cell} ex={ex.data} />
+              {cell.valid_date && <Timeline rid={rid} valid={cell.valid_date} upto={init} />}
+              <Ensemble day={rd ? { ens_q10: rd.ens_q10, ens_q90: rd.ens_q90, ens_mean: rd.ens_mean, f_rain: rd.f_rain, spread_anom: rd.spread_anom } : undefined} />
+              <Analogs ex={ex.data} cycles={cycles} />
+              <Sec title="Novelty · regime">
+                <p className="text-xs text-muted-foreground">Novelty: {cell.novelty == null ? NA_TEXT : cell.novelty.toFixed(2)} · Regime: {cell.regime ?? NA_TEXT}</p>
+              </Sec>
+              <Sec title="Table view">
+                <DataTable cols={[{ key: "k", label: "Item" }, { key: "v", label: "Value" }]} rows={[
+                  { k: "P(bust)", v: pct(cell.p_bust, 1) }, { k: "Previous cycle P(bust)", v: pct(cell.p_bust_prev, 1) },
+                  { k: "Confidence", v: cell.confidence }, { k: "Forecast rain", v: mm(cell.f_rain) },
+                  { k: "Spread anomaly", v: cell.spread_anom?.toFixed(2) ?? "–" }, ...traj.map((p, i) => ({ k: `P(bust) D${i + 1}`, v: pct(p, 1) })),
+                ]} />
+              </Sec>
             </details>
           </>
         )}
       </div>
-      <div className="panel-sec flex flex-wrap gap-1 border-t">
-        <Button size="sm" asChild><Link to={linkTo(`/region/${rid}`, { day, tab: "overview" })} data-testid="open-region-analysis">Open region analysis</Link></Button>
-        <Button size="sm" variant="outline" asChild><Link to={linkTo(`/region/${rid}`, { day, tab: "verify" })} data-testid="inv-verify">Verify</Link></Button>
-        <Button size="sm" variant="outline" asChild><Link to={`/replay?event=${encodeURIComponent(init)}&act=3`} data-testid="inv-replay">Time Machine</Link></Button>
+      <div className="flex flex-wrap items-center gap-1 border-t px-3 py-2">
+        <Button size="sm" asChild className="flex-1"><Link to={linkTo(`/region/${rid}`, { day, tab: "overview" })} data-testid="open-region-analysis">Open region analysis →</Link></Button>
+        <Button size="sm" variant="ghost" asChild><Link to={linkTo(`/region/${rid}`, { day, tab: "verify" })} data-testid="inv-verify">Verify</Link></Button>
+        <Button size="sm" variant="ghost" asChild><Link to={`/replay?event=${encodeURIComponent(init)}&act=3`} data-testid="inv-replay">Replay</Link></Button>
       </div>
     </aside>
   );

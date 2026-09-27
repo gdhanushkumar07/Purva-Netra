@@ -25,12 +25,9 @@ export function MigrationStrip({ cells, day, onDay, theme }: { cells: Cell[]; da
   const na = theme === "dark" ? "#262625" : "#e8e7e1";
   const stroke = theme === "dark" ? "#1a1a19" : "#fcfcfb";
   return (
-    <section className="panel" aria-label="Risk migration Day 1 to 10" data-testid="migration-strip">
-      <div className="panel-sec flex items-baseline justify-between">
-        <h3 className="panel-title">Risk migration · P(Bust) Day 1 → 10</h3>
-        <span className="text-[11px] text-muted-foreground">Where does trust deteriorate or recover with lead time? Same cycle, existing predictions.</span>
-      </div>
-      <ol className="panel-sec grid grid-cols-5 gap-1 lg:grid-cols-10">
+    <section aria-label="Risk footprint evolution Day 1 to 10" data-testid="migration-strip" className="px-2 pt-1">
+      <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Risk footprint evolution · P(Bust) D1 → D10</h3>
+      <ol className="grid grid-cols-10 gap-0.5">
         {[...Array(10)].map((_, i) => {
           const d = i + 1;
           const dc = byDay.get(d) ?? new Map();
@@ -40,12 +37,12 @@ export function MigrationStrip({ cells, day, onDay, theme }: { cells: Cell[]; da
               <button type="button" onClick={() => onDay(d)} aria-pressed={d === day} data-testid={`mig-${d}`}
                 aria-label={`Day ${d}: ${n} subdivisions at Reduced or Low`}
                 className={cn("flex w-full flex-col items-center rounded border p-0.5", d === day ? "border-foreground" : "border-transparent hover:border-border")}>
-                <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" aria-hidden>
+                <svg viewBox={`0 0 ${W} ${H}`} className="h-12 w-full" aria-hidden>
                   {[...paths.entries()].map(([rid, dPath]) => (
                     <path key={rid} d={dPath} fill={dc.get(rid)?.p_bust == null ? na : pbustColor(dc.get(rid)!.p_bust, theme)} stroke={stroke} strokeWidth={0.3} />
                   ))}
                 </svg>
-                <span className="tnum text-[11px]"><strong>D{d}</strong> · {n} ▲◆</span>
+                <span className="tnum text-[10px] text-muted-foreground">D{d} · {n}</span>
               </button>
             </li>
           );

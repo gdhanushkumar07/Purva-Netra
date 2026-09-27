@@ -1,3 +1,28 @@
+# Map 2.0: final visual refinement (2026-09-27)
+
+**UI/UX only.** No change to P(bust), the model, SHAP, the ensemble, forecast data, APIs, the backend, replay, NRT or the database, and no new features. Screenshots are in `docs/screens/map2-refined/`.
+
+- **Map first.** The map takes about 70% of a desktop screen. The analysis panel is a compact 26% column (300–400 px), collapses to an overlay on tablets, and stacks as map → hotspots → investigation on phones.
+- **Toolbar hierarchy:**
+  - Layers drawer.
+  - Primary lenses: P(Bust) / Forecast Rain / Ensemble Spread.
+  - Quieter secondary lenses: Novelty / Revision / Regime.
+  - View: Split / Table / Migration.
+  - A compact **Basemap ▾** menu, then fullscreen and panel toggles.
+- **Layer drawer** is compact and **closed by default** (`?layers=1` opens it). Each layer has a one-line description; the long explanations sit behind (i) tooltips.
+- **Basemaps:**
+  - Imagery is dimmed and desaturated (55% opacity), with a "Satellite · context only" chip over the map.
+  - Light has distinct ocean and land tones with a subtle graticule and outline. Dark keeps a restrained ops-room palette.
+  - Evidence is drawn at 90% over imagery.
+- **Floating legend:** compact, inside the map area. It shows the ramp, edge values, a one-line meaning and "Day N = rain day ending …"; the full definition is in a tooltip.
+- **Right panel:** two tabs, Hotspots and Investigate.
+  - Hotspots are compact ranked rows ("01 Region 13% Normal"). A one-line footprint summary is shown, and the grouped list appears only when the outline is on.
+  - Investigation shows summary → trajectory → cycle change → an evidence list (↑ raises / ↓ lowers / — not available), with **More detail** (why, timeline, ensemble, analogs) behind a disclosure. There's a persistent "Open region analysis →" button.
+- **Timeline:** a clean D1–D10 track with ◆ Low / ▲ Reduced markers; ←/→ and **Space** for play/pause.
+- **Migration** is a view mode ("Risk footprint evolution"). **Table** is a synced alternative view: Region / P(Bust) / Forecast rain / Spread / Confidence / Day, where clicking a row selects it on the map.
+- **Controls:** subtle zoom controls, a slightly heavier dashed footprint outline, and fewer trajectory axis ticks.
+- **Tests:** the Map e2e specs were updated for the new layout, and a table-sync test was added. All suites pass: pytest 36, vitest 26, Playwright replay 71 / NRT 5 / offline 2.
+
 # Map 2.0: Spatial Intelligence Console (2026-09-27)
 
 **The science is untouched.** No change to P(bust), the model, features, labels, calibration, SHAP, the ENS/IMD processing, the NRT or replay pipelines, the API contracts or the database schema. Every new view re-arranges **existing** outputs from `/matrix`, `/region`, `/explain` and `/revision`. The only new files are two display assets **derived from the existing IMD subdivision GeoJSON** (`scripts/build_map_assets.py`): `adjacency.json` and `india_outline.geojson`. Screenshots are in `docs/screens/map2/`.

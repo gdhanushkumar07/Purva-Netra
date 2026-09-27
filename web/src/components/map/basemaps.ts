@@ -29,19 +29,22 @@ function graticule() {
   return { type: "FeatureCollection", features: f };
 }
 
+// light/dark: ocean tone distinct from the India land tint drawn from the dissolved IMD outline
 const surface = (b: BasemapId, theme: Theme) =>
-  b === "light" ? "#f3f2ee" : b === "dark" ? "#141413" : b === "minimal" ? (theme === "dark" ? "#1a1a19" : "#fcfcfb") : "#0b1020";
+  b === "light" ? "#e9eef2" : b === "dark" ? "#0f1113" : b === "minimal" ? (theme === "dark" ? "#1a1a19" : "#fcfcfb") : "#0b0f16";
 
 /** Apply a basemap beneath the evidence layers (ids "fill"/"line"/"sel"). Safe to call repeatedly. */
 export async function applyBasemap(m: MLMap, id: BasemapId, theme: Theme, onTileError?: () => void) {
   const b = basemapOf(id);
-  for (const l of ["bm-raster", "bm-grat", "bm-outline"]) if (m.getLayer(l)) m.removeLayer(l);
+  for (const l of ["bm-raster", "bm-land", "bm-grat", "bm-outline"]) if (m.getLayer(l)) m.removeLayer(l);
   for (const s of ["bm-raster", "bm-grat", "bm-outline"]) if (m.getSource(s)) m.removeSource(s);
   if (m.getLayer("bg")) m.setPaintProperty("bg", "background-color", surface(id, theme));
   const before = m.getLayer("fill") ? "fill" : undefined;
   if (b.tiles) {
     m.addSource("bm-raster", { type: "raster", tiles: [b.tiles], tileSize: 256, maxzoom: 8, attribution: b.attribution });
-    m.addLayer({ id: "bm-raster", type: "raster", source: "bm-raster" }, before);
+    // imagery is background: desaturated and dimmed over a dark surface so the evidence stays dominant
+    m.addLayer({ id: "bm-raster", type: "raster", source: "bm-raster",
+      paint: { "raster-opacity": 0.55, "raster-saturation": -0.55, "raster-contrast": -0.15, "raster-brightness-max": 0.8 } }, before);
     if (onTileError) {
       const h = (e: { sourceId?: string }) => { if (e.sourceId === "bm-raster") onTileError(); };
       m.on("error", h as never);
@@ -52,9 +55,12 @@ export async function applyBasemap(m: MLMap, id: BasemapId, theme: Theme, onTile
     m.addSource("bm-grat", { type: "geojson", data: graticule() as never });
     m.addLayer({ id: "bm-grat", type: "line", source: "bm-grat", paint: { "line-color": ink, "line-width": 0.6, "line-dasharray": [2, 2] } }, before);
     m.addSource("bm-outline", { type: "geojson", data: (await loadOutline()) as never });
-    if (m.getSource("bm-outline")) m.addLayer({ id: "bm-outline", type: "line", source: "bm-outline",
-      paint: { "line-color": id === "dark" ? "#6b6a64" : "#8a8983", "line-width": 1.6 } });
+    if (m.getSource("bm-outline")) {
+      m.addLayer({ id: "bm-land", type: "fill", source: "bm-outline", paint: { "fill-color": id === "dark" ? "#1c1c1b" : "#f7f6f2" } }, "bm-grat");
+      m.addLayer({ id: "bm-outline", type: "line", source: "bm-outline", paint: { "line-color": id === "dark" ? "#6b6a64" : "#8a8983", "line-width": 1.4 } });
+    }
   }
   // Evidence stays readable over imagery; the legend notes the reduced opacity.
-  if (m.getLayer("fill")) m.setPaintProperty("fill", "fill-opacity", b.tiles ? 0.82 : 1);
+  if (m.getLayer("fill")) m.setPaintProperty("fill", "fill-opacity", b.tiles ? 0.9 : 1);
+  if (m.getLayer("line")) m.setPaintProperty("line", "line-width", b.tiles ? 1.2 : 1);
 }

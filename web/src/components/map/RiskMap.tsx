@@ -83,7 +83,7 @@ export function RiskMap({
       m.addSource("sd", { type: "geojson", data, promoteId: "rid" });
       m.addLayer({ id: "fill", type: "fill", source: "sd", paint: { "fill-color": "#ccc", "fill-opacity": 1 } });
       m.addLayer({ id: "line", type: "line", source: "sd", paint: { "line-color": theme === "dark" ? "#1a1a19" : "#fcfcfb", "line-width": 1 } });
-      m.addLayer({ id: "fp", type: "line", source: "sd", paint: { "line-color": theme === "dark" ? "#f0efec" : "#0b0b0b", "line-width": 2, "line-dasharray": [2, 1.5] }, filter: ["in", ["get", "rid"], ["literal", []]] });
+      m.addLayer({ id: "fp", type: "line", source: "sd", paint: { "line-color": theme === "dark" ? "#f0efec" : "#0b0b0b", "line-width": 3, "line-dasharray": [2, 1.2] }, filter: ["in", ["get", "rid"], ["literal", []]] });
       m.addLayer({ id: "sel", type: "line", source: "sd", paint: { "line-color": theme === "dark" ? "#ffffff" : "#0b0b0b", "line-width": 3 }, filter: ["==", ["get", "rid"], -1] });
       m.on("click", "fill", (e) => { const rid = e.features?.[0]?.properties?.rid; if (rid != null) onSelectRef.current?.(Number(rid), { x: e.point.x, y: e.point.y }); });
       m.on("mouseenter", "fill", () => (m.getCanvas().style.cursor = "pointer"));

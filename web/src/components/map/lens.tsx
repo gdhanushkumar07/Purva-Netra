@@ -79,7 +79,7 @@ export function LensLegend({ lens, theme, cells, orange = false, overImagery = f
         </p>
       )}
       {day != null && <p className="text-muted-foreground" data-testid="legend-day">Day {day} = the 24 h rain day ending on {validDate ?? "–"} (IMD day, 03 UTC).</p>}
-      {overImagery && <p className="text-muted-foreground">Shown at 82% opacity over context imagery.</p>}
+      {overImagery && <p className="text-muted-foreground">Shown at 90% opacity over dimmed context imagery.</p>}
     </figure>
   );
 }
