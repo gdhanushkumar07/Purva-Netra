@@ -72,6 +72,10 @@ def current_user(request: Request) -> dict:
         if ident:
             return ident
     tok = request.cookies.get(COOKIE)
+    if not tok:
+        auth_hdr = request.headers.get("Authorization", "")
+        if auth_hdr.startswith("Bearer "):
+            tok = auth_hdr.split(" ", 1)[1].strip()
     if tok:
         try:
             c = jwt.decode(tok, _secret(), algorithms=["HS256"])
@@ -128,10 +132,18 @@ def login(body: Login, request: Request, response: Response):
             _fails[k].append(time.time())
         db.audit(body.username, "login", dict(ip=ip), "failed")
         raise HTTPException(401, "Invalid username or password")
-    response.set_cookie(COOKIE, make_token(u["username"], u["role"]), max_age=TTL_S, httponly=True,
-                        secure=os.environ.get("PN_COOKIE_SECURE", "true").lower() != "false", samesite="strict", path="/")
+    token = make_token(u["username"], u["role"])
+    is_https = request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https"
+    cookie_secure_env = os.environ.get("PN_COOKIE_SECURE")
+    if cookie_secure_env is not None:
+        secure_cookie = cookie_secure_env.lower() in ("true", "1", "yes")
+    else:
+        secure_cookie = is_https
+
+    response.set_cookie(COOKIE, token, max_age=TTL_S, httponly=True,
+                        secure=secure_cookie, samesite="lax", path="/")
     db.audit(u["username"], "login", dict(ip=ip), "ok")
-    return dict(username=u["username"], role=u["role"])
+    return dict(username=u["username"], role=u["role"], anonymous=False, token=token)
 
 
 @router.post("/logout")

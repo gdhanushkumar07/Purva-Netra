@@ -174,7 +174,16 @@ function UserMenu() {
         <DropdownMenuLabel>{me.username} · {me.role}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {canOperate(me) && <DropdownMenuItem onSelect={() => nav("/ops")}><Settings2 className="size-4" />Operations</DropdownMenuItem>}
-        <DropdownMenuItem onSelect={async () => { await post("/auth/logout", {}); await qc.invalidateQueries(); nav("/brief"); }}>
+        <DropdownMenuItem onSelect={async () => {
+          try {
+            localStorage.removeItem("pn_token");
+            localStorage.removeItem("pn_user");
+          } catch {}
+          qc.setQueryData(["me"], { username: null, role: "viewer", anonymous: true });
+          await post("/auth/logout", {}).catch(() => undefined);
+          await qc.invalidateQueries();
+          nav("/brief");
+        }}>
           <LogOut className="size-4" />Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>

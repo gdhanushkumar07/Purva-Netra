@@ -3,12 +3,25 @@ import type { Band } from "@/theme/scales";
 
 export const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? "/api";
 
+function authHeaders(): Record<string, string> {
+  try {
+    const token = typeof window !== "undefined" ? localStorage.getItem("pn_token") : null;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+}
+
 export class HttpError extends Error {
   status: number;
   constructor(status: number, message: string) { super(message); this.status = status; }
 }
 export async function get<T>(path: string): Promise<T> {
-  const r = await fetch(`${API_BASE}${path}`, { credentials: "same-origin", cache: "no-store" });   // freshness data must never come from the HTTP cache
+  const r = await fetch(`${API_BASE}${path}`, {
+    credentials: "include",
+    cache: "no-store",
+    headers: { ...authHeaders() },
+  });   // freshness data must never come from the HTTP cache
   if (r.status === 401 || r.status === 403) throw new HttpError(r.status, (await r.text()) || String(r.status));
   if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
   return r.json() as Promise<T>;
@@ -16,8 +29,8 @@ export async function get<T>(path: string): Promise<T> {
 export async function post<T>(path: string, body: unknown): Promise<T> {
   const r = await fetch(`${API_BASE}${path}`, {
     method: "POST",
-    credentials: "same-origin",
-    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(body),
   });
   const data = await r.json().catch(() => ({}));
@@ -123,8 +136,22 @@ export const useLedger = () => useQuery({ queryKey: ["ledger"], queryFn: () => g
 
 // ---------------------------------------------------------------- auth
 export type Role = "viewer" | "operator" | "admin";
-export interface Me { username: string | null; role: Role; anonymous: boolean }
-export const useMe = () => useQuery({ queryKey: ["me"], queryFn: () => get<Me>("/auth/me"), staleTime: 60_000 });
+export interface Me { username: string | null; role: Role; anonymous: boolean; token?: string }
+export const useMe = () =>
+  useQuery({
+    queryKey: ["me"],
+    queryFn: () => get<Me>("/auth/me"),
+    staleTime: 10_000,
+    initialData: () => {
+      try {
+        const saved = typeof window !== "undefined" ? localStorage.getItem("pn_user") : null;
+        if (saved) return JSON.parse(saved) as Me;
+      } catch {
+        // ignore
+      }
+      return undefined;
+    },
+  });
 export const canOperate = (m?: Me) => !!m && (m.role === "operator" || m.role === "admin");
 
 // ---------------------------------------------------------------- ops

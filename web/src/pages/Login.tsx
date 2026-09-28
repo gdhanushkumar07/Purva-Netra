@@ -25,7 +25,19 @@ export default function Login() {
     setBusy(true); setErr(null);
     try {
       const me = await post<Me>("/auth/login", { username: u, password: p });
-      await qc.invalidateQueries();
+      const userData: Me = {
+        username: me.username,
+        role: me.role,
+        anonymous: false,
+        token: me.token,
+      };
+      if (me.token) {
+        localStorage.setItem("pn_token", me.token);
+      }
+      localStorage.setItem("pn_user", JSON.stringify(userData));
+      qc.setQueryData(["me"], userData);
+      await qc.refetchQueries({ queryKey: ["me"] });
+      await qc.invalidateQueries({ queryKey: ["ops"] });
       nav(sp.get("next") ?? (me.role === "viewer" ? "/brief" : "/ops"));
     } catch (x) {
       const s = (x as HttpError).status;
