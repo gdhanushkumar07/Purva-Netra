@@ -4,7 +4,7 @@ import { toPng } from "html-to-image";
 import { AlertTriangle, Download, Printer, Table2, BarChart3, Inbox } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BAND, PBUST_LABELS, pbustPalette, type Band } from "@/theme/scales";
-import { useResolvedTheme } from "@/lib/hooks";
+import { useInit, useResolvedTheme } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 
 /** Confidence band: colour + icon + text, always together (never colour alone). */
@@ -49,23 +49,52 @@ export function PbustLegend({ compact = false }: { compact?: boolean }) {
   );
 }
 
-export function Loading() {
+export function Loading({ label }: { label?: string }) {
   const { t } = useTranslation();
-  return <div className="p-6 text-sm text-muted-foreground" role="status">{t("common.loading")}</div>;
+  return <div className="p-6 text-sm text-muted-foreground" role="status">{label ?? t("common.loading")}</div>;
 }
 
-export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
+/** Title for a failed request, by failure category (network/CORS, HTTP status, non-JSON body). */
+export function errorTitle(error: unknown, fallback: string) {
+  const e = error as { kind?: string; status?: number };
+  if (e?.kind === "network") return "Unable to connect to forecast service";
+  if (e?.kind === "invalid-response") return "Forecast service returned an invalid response";
+  if (e?.kind === "auth") return `Not authorised (${e.status})`;
+  if (e?.status === 404) return "Forecast data not found (404)";
+  if (e?.status && e.status >= 500) return `Forecast service error (${e.status})`;
+  return fallback;
+}
+
+export function ErrorState({ error, onRetry, title }: { error: unknown; onRetry?: () => void; title?: string }) {
   const { t } = useTranslation();
   return (
-    <div role="alert" className="m-4 flex items-start gap-3 rounded-lg border border-destructive/50 p-4 text-sm">
+    <div role="alert" data-testid="error-state" className="m-4 flex items-start gap-3 rounded-lg border border-destructive/50 p-4 text-sm">
       <AlertTriangle className="size-4 text-destructive" aria-hidden />
       <div className="flex-1">
-        <p className="font-medium">{t("common.error")}</p>
+        <p className="font-medium">{title ?? errorTitle(error, t("common.error"))}</p>
         <p className="text-muted-foreground">{String((error as Error)?.message ?? error)}</p>
       </div>
       {onRetry && <Button size="sm" variant="outline" onClick={onRetry}>{t("common.retry")}</Button>}
     </div>
   );
+}
+
+/** App-level gate for every screen that needs a forecast cycle: renders children only once `init`
+ *  is resolved from /cycles; otherwise an explicit loading / error / empty state — never an endless "Loading…". */
+export function CycleGate({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
+  const c = useInit();
+  if (c.status === "loading") return <Loading label="Loading forecast cycles…" />;
+  if (c.status === "error") return <ErrorState error={c.error} onRetry={c.retry} />;
+  if (c.status === "empty") return (
+    <div data-testid="no-cycles">
+      <EmptyState title="No forecast cycles available.">
+        <p>The forecast service answered, but it has no published cycles yet.</p>
+        <Button className="mt-2" size="sm" variant="outline" onClick={c.retry}>{t("common.retry")}</Button>
+      </EmptyState>
+    </div>
+  );
+  return <>{children}</>;
 }
 
 export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {

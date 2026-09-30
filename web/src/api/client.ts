@@ -1,7 +1,17 @@
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import type { Band } from "@/theme/scales";
 
-export const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? "/api";
+// Default: same-origin "/api" (Vite proxy locally, the Vercel rewrite in production).
+// VITE_API_BASE may point straight at the backend (cross-origin) instead.
+export const API_BASE = ((import.meta.env.VITE_API_BASE as string | undefined) || "/api").replace(/\/+$/, "");
+
+// Cookies only travel same-origin. A cross-origin *credentialed* request is rejected by the browser
+// whenever the backend answers `Access-Control-Allow-Origin: *` (it does), so cross-origin calls go
+// without credentials and authenticate with the Bearer token instead.
+const CROSS_ORIGIN = typeof window !== "undefined" && /^https?:\/\//i.test(API_BASE)
+  && new URL(API_BASE).origin !== window.location.origin;
+export const WITH_CREDENTIALS = !CROSS_ORIGIN;
+const credentials: RequestCredentials = CROSS_ORIGIN ? "omit" : "same-origin";
 
 function authHeaders(): Record<string, string> {
   try {
@@ -12,24 +22,40 @@ function authHeaders(): Record<string, string> {
   }
 }
 
+/** Why a request failed, so the UI can say so instead of loading forever. */
+export type ApiErrorKind = "network" | "http" | "invalid-response" | "auth";
 export class HttpError extends Error {
   status: number;
-  constructor(status: number, message: string) { super(message); this.status = status; }
+  kind: ApiErrorKind;
+  constructor(status: number, message: string, kind: ApiErrorKind = status === 401 || status === 403 ? "auth" : "http") {
+    super(message); this.status = status; this.kind = kind;
+  }
 }
+export const apiErrorKind = (e: unknown): ApiErrorKind | undefined => (e instanceof HttpError ? e.kind : undefined);
+
 export async function get<T>(path: string): Promise<T> {
-  const r = await fetch(`${API_BASE}${path}`, {
-    credentials: "include",
-    cache: "no-store",
-    headers: { ...authHeaders() },
-  });   // freshness data must never come from the HTTP cache
-  if (r.status === 401 || r.status === 403) throw new HttpError(r.status, (await r.text()) || String(r.status));
-  if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
-  return r.json() as Promise<T>;
+  let r: Response;
+  try {
+    r = await fetch(`${API_BASE}${path}`, {
+      credentials,
+      cache: "no-store",   // freshness data must never come from the HTTP cache
+      headers: { ...authHeaders() },
+    });
+  } catch (e) {          // DNS, offline, TLS, or a CORS rejection — the browser gives no status
+    throw new HttpError(0, `Unable to connect to the forecast service (${(e as Error).message || "network or CORS failure"}).`, "network");
+  }
+  const body = await r.text();
+  if (!r.ok) throw new HttpError(r.status, `${r.status} ${r.statusText || ""} ${body.slice(0, 200)}`.trim());
+  try {
+    return JSON.parse(body) as T;
+  } catch {              // e.g. an HTML page served where the API should be (broken proxy/rewrite)
+    throw new HttpError(r.status, `The forecast service returned an invalid response (${r.headers.get("content-type") ?? "no content-type"}, not JSON).`, "invalid-response");
+  }
 }
 export async function post<T>(path: string, body: unknown): Promise<T> {
   const r = await fetch(`${API_BASE}${path}`, {
     method: "POST",
-    credentials: "include",
+    credentials,
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(body),
   });

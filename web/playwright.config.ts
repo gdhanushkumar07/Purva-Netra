@@ -13,7 +13,7 @@ export default defineConfig({
   workers: 2,
   reporter: [["list"]],
   projects: [
-    { name: "replay", testMatch: /(flows|console|map2)\.spec\.ts/, use: { ...use, baseURL: process.env.BASE ?? "http://localhost:5173" } },
+    { name: "replay", testMatch: /(flows|console|map2|init)\.spec\.ts/, use: { ...use, baseURL: process.env.BASE ?? "http://localhost:5173" } },
     { name: "nrt", testMatch: /ops\.spec\.ts/, use: { ...use, baseURL: "http://localhost:5174" } },
     { name: "offline", testMatch: /offline\.spec\.ts/, use: { ...use, baseURL: "http://localhost:5174" } },
   ],

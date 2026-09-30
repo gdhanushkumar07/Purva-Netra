@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { Download, Play, RotateCcw, RefreshCw, ScrollText } from "lucide-react";
 import {
-  API_BASE, HttpError, get, post, useMe, canOperate, useOpsJobs, useOpsJob, useOpsStatus, type Job, type LogLine, type OpsStatus, type Stage,
+  API_BASE, WITH_CREDENTIALS, HttpError, get, post, useMe, canOperate, useOpsJobs, useOpsJob, useOpsStatus, type Job, type LogLine, type OpsStatus, type Stage,
 } from "@/api/client";
 import { statusView, TONE_COLOR } from "@/lib/status";
 import { fmtAge, fmtUtc } from "@/components/shell/Shell";
@@ -214,7 +214,7 @@ function LogsDrawer({ jobId, onClose }: { jobId: number | null; onClose: () => v
       if (cancelled) return;
       if (j.status === "running" || j.status === "queued") {
         setLive(true);
-        es = new EventSource(`${API_BASE}/ops/jobs/${jobId}/logs`, { withCredentials: true });
+        es = new EventSource(`${API_BASE}/ops/jobs/${jobId}/logs`, { withCredentials: WITH_CREDENTIALS });
         es.onmessage = (e) => setLines((l) => [...l, JSON.parse(e.data)]);
         es.addEventListener("end", () => { setLive(false); es?.close(); });
         es.onerror = () => { setLive(false); es?.close(); };

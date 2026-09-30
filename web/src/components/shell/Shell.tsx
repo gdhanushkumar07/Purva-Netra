@@ -98,14 +98,18 @@ function ModelBadge() {
 
 function CyclePicker() {
   const { t } = useTranslation();
-  const { init, cycles, prev, next, setInit } = useInit();
+  const { init, cycles, prev, next, setInit, status, retry } = useInit();
+  const placeholder = status === "loading" ? "Loading cycles…" : status === "error" ? "Cycles unavailable" : status === "empty" ? "No cycles" : null;
   return (
-    <div className="flex items-center gap-1" data-tour="cycle">
+    <div className="flex items-center gap-1" data-tour="cycle" data-status={status}>
       <Button size="icon" variant="ghost" aria-label="Previous cycle" disabled={!prev} onClick={() => prev && setInit(prev)}><ChevronLeft className="size-4" /></Button>
       <label className="sr-only" htmlFor="cycle-select">{t("shell.cycle")}</label>
-      <select id="cycle-select" className="tnum h-8 rounded-md border bg-card px-2 text-sm" value={init ?? ""} onChange={(e) => setInit(e.target.value)}>
+      <select id="cycle-select" className="tnum h-8 rounded-md border bg-card px-2 text-sm" value={init ?? ""} disabled={!!placeholder}
+        onChange={(e) => setInit(e.target.value)}>
+        {placeholder && <option value="">{placeholder}</option>}
         {cycles.map((c) => <option key={c} value={c}>{t("shell.init")} {fmtInit(c)}</option>)}
       </select>
+      {status === "error" && <Button size="sm" variant="outline" onClick={retry} data-testid="cycles-retry">{t("common.retry")}</Button>}
       <Button size="icon" variant="ghost" aria-label="Next cycle" disabled={!next} onClick={() => next && setInit(next)}><ChevronRight className="size-4" /></Button>
     </div>
   );

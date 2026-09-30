@@ -18,18 +18,28 @@ export function useResolvedTheme(): Theme {
   return theme === "system" ? sys : theme;
 }
 
-/** Current cycle from ?init=, else the latest cycle in the replay store. */
+export type InitStatus = "loading" | "error" | "empty" | "ready";
+
+/** The one place the current cycle is resolved (from /cycles, never hard-coded):
+ *  ?init= when it is an available cycle, otherwise the latest available cycle.
+ *  `init` is defined only when status is "ready"; callers gate on status via <CycleGate>. */
 export function useInit() {
   const { get, set } = useView();
   const cycles = useCycles();
-  const list = cycles.data?.map((c) => c.init) ?? [];
-  const init = get("init") ?? list[list.length - 1];
+  const list = useMemo(() => (Array.isArray(cycles.data) ? cycles.data.map((c) => c.init) : []), [cycles.data]);
+  const requested = get("init");
+  const status: InitStatus = cycles.data !== undefined ? (list.length ? "ready" : "empty")
+    : cycles.isError ? "error" : "loading";
+  const init = status !== "ready" ? undefined : requested && list.includes(requested) ? requested : list[list.length - 1];
   const idx = init ? list.indexOf(init) : -1;
   return {
     init,
+    status,
+    requestedInvalid: status === "ready" && !!requested && requested !== init ? requested : undefined,
     cycles: list,
-    loading: cycles.isLoading,
+    loading: status === "loading",
     error: cycles.error,
+    retry: () => void cycles.refetch(),
     prev: idx > 0 ? list[idx - 1] : undefined,
     next: idx >= 0 && idx < list.length - 1 ? list[idx + 1] : undefined,
     setInit: (v: string) => set({ init: v }),

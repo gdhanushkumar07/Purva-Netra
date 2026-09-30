@@ -4,7 +4,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "sonner";
 import { Shell } from "@/components/shell/Shell";
-import { Loading } from "@/components/common";
+import { CycleGate, Loading } from "@/components/common";
+import { HttpError } from "@/api/client";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useResolvedTheme } from "@/lib/hooks";
 import { useSettings } from "@/store";
@@ -22,7 +23,11 @@ const Ops = lazy(() => import("@/pages/Ops"));
 const Login = lazy(() => import("@/pages/Login"));
 const Home = lazy(() => import("@/pages/Home"));
 
-const qc = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
+// One retry for transient failures; a 4xx will not fix itself, so it surfaces immediately.
+const qc = new QueryClient({ defaultOptions: { queries: {
+  retry: (n, e) => n < 1 && !(e instanceof HttpError && e.status >= 400 && e.status < 500),
+  refetchOnWindowFocus: false,
+} } });
 
 function ThemeSync() {
   const t = useResolvedTheme();
@@ -57,14 +62,15 @@ export default function App() {
             <Screens><Suspense fallback={<Loading />}>
               <Routes>
                 <Route path="/" element={<Home />} />
-                <Route path="/brief" element={<Brief />} />
-                <Route path="/matrix" element={<Matrix />} />
-                <Route path="/map" element={<MapPage />} />
-                <Route path="/region/:rid" element={<Region />} />
-                <Route path="/replay" element={<Replay />} />
-                <Route path="/compare" element={<Compare />} />
+                {/* screens that need a forecast cycle wait for it here, once, with explicit states */}
+                <Route path="/brief" element={<CycleGate><Brief /></CycleGate>} />
+                <Route path="/matrix" element={<CycleGate><Matrix /></CycleGate>} />
+                <Route path="/map" element={<CycleGate><MapPage /></CycleGate>} />
+                <Route path="/region/:rid" element={<CycleGate><Region /></CycleGate>} />
+                <Route path="/replay" element={<CycleGate><Replay /></CycleGate>} />
+                <Route path="/compare" element={<CycleGate><Compare /></CycleGate>} />
                 <Route path="/ledger" element={<Ledger />} />
-                <Route path="/watchlist" element={<Watchlist />} />
+                <Route path="/watchlist" element={<CycleGate><Watchlist /></CycleGate>} />
                 <Route path="/method" element={<Method />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/ops" element={<Ops />} />
