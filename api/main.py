@@ -104,7 +104,7 @@ def _meta():
     return json.loads(p.read_text()) if v and p.exists() else {}
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 def health():
     """Mode, data age and last successful update — the top-bar badge reads only this."""
     from purva_netra import bundle as Bn
